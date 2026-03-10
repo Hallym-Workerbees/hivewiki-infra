@@ -2,11 +2,6 @@ name: OpenTofu Plan
 
 on:
   pull_request:
-    paths:
-      - "**/*.tf"
-      - "**/*.tfvars"
-      - ".terraform.lock.hcl"
-  push:
     branches:
       - main
     paths:
