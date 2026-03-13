@@ -8,7 +8,7 @@ resource "aws_s3_bucket" "state_backend" {
   bucket = "hivewiki-infra-state-bucket"
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "state_sse_s3" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "state_kms_encryption" {
   bucket = aws_s3_bucket.state_backend.id
   rule {
     apply_server_side_encryption_by_default {
