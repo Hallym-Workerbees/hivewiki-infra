@@ -11,7 +11,6 @@ locals {
       accessToken = var.dockerhub_access_token
     }
     ghcr = {
-
       username    = var.ghcr_username
       accessToken = var.ghcr_access_token
     }
@@ -147,6 +146,9 @@ resource "aws_ecr_lifecycle_policy" "app_repositories" {
 }
 
 ## ECR Caches for external registries
+# We use default kms encryption(AWS Managed Keys)
+# In addition, credentials are stored in the remote tfstate backend.
+# We intentionially chose this strategy to reduce operational complexity
 resource "aws_secretsmanager_secret" "cache_cred" {
   for_each    = local.cache_creds
   name        = "ecr-pullthroughcache/${each.key}"
