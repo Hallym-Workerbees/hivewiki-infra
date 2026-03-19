@@ -5,22 +5,38 @@ locals {
     "hivewiki-collector",
     "hivewiki-web"
   ]
+  cache_creds = {
+    docker-hub = {
+      username    = var.dockerhub_username
+      accessToken = var.dockerhub_access_token
+    }
+    ghcr = {
+
+      username    = var.ghcr_username
+      accessToken = var.ghcr_access_token
+    }
+  }
 
   pull_through_cache_rules = {
     k8s = {
       upstream_registry_url = "registry.k8s.io"
+      needs_auth            = false
     }
-    public-ecr = {
+    ecr-public = {
       upstream_registry_url = "public.ecr.aws"
+      needs_auth            = false
     }
     quay = {
       upstream_registry_url = "quay.io"
+      needs_auth            = false
     }
     ghcr = {
       upstream_registry_url = "ghcr.io"
+      needs_auth            = true
     }
     docker-hub = {
       upstream_registry_url = "registry-1.docker.io"
+      needs_auth            = true
     }
   }
 }
@@ -94,7 +110,7 @@ resource "aws_ecr_lifecycle_policy" "app_repositories" {
           tagStatus     = "tagged"
           tagPrefixList = ["prod", "main", "stable"]
           countType     = "imageCountMoreThan"
-          countNumber   = 30
+          countNumber   = 10
         }
         action = {
           type = "expire"
@@ -131,11 +147,28 @@ resource "aws_ecr_lifecycle_policy" "app_repositories" {
 }
 
 ## ECR Caches for external registries
+resource "aws_secretsmanager_secret" "cache_cred" {
+  for_each    = local.cache_creds
+  name        = "ecr-pullthroughcache/${each.key}"
+  description = "Credentials for ECP pull through cache: ${each.key}"
+}
+
+resource "aws_secretsmanager_secret_version" "cache_cred" {
+  for_each  = local.cache_creds
+  secret_id = aws_secretsmanager_secret.cache_cred[each.key].id
+  secret_string = jsonencode({
+    username    = each.value.username
+    accessToken = each.value.accessToken
+  })
+}
+
 resource "aws_ecr_pull_through_cache_rule" "cache" {
   for_each = local.pull_through_cache_rules
 
   ecr_repository_prefix = each.key
   upstream_registry_url = each.value.upstream_registry_url
+
+  credential_arn = each.value.needs_auth ? aws_secretsmanager_secret.cache_cred[each.key].arn : null
 }
 
 resource "aws_ecr_repository_creation_template" "cache_template" {
