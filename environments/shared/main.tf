@@ -10,6 +10,9 @@ locals {
     k8s = {
       upstream_registry_url = "registry.k8s.io"
     }
+    public-ecr = {
+      upstream_registry_url = "public.ecr.aws"
+    }
     quay = {
       upstream_registry_url = "quay.io"
     }
