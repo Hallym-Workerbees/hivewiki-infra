@@ -29,6 +29,10 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      TF_VAR_dockerhub_access_token: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+      TF_VAR_ghcr_username: ${{ secrets.GHCR_USERNAME }}
+      TF_VAR_ghcr_access_token: ${{ secrets.GHCR_ACCESS_TOKEN }}
 
     steps:
       - name: Checkout
