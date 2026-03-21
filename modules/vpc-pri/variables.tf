@@ -3,28 +3,25 @@ variable "cluster_name" {
   type        = string
 }
 
+variable "vpc_id" {
+  description = "VPC ID"
+  type        = string
+}
+
 variable "azs" {
   description = "Availability zone aliases"
   type        = map(string)
 }
 
-variable "cidr_block" {
-  description = "CIDR block for vpc."
+variable "private_subnets" {
+  description = "Private subnets"
+  type = map(object({
+    cidr = string
+    az   = string
+  }))
+}
+
+variable "natgw_az" {
+  description = "EIP alloc az for NATGW"
   type        = string
-}
-
-variable "public_subnets" {
-  description = "Public subnets"
-  type = map(object({
-    cidr = string
-    az   = string
-  }))
-}
-
-variable "db_subnets" {
-  description = "DB subnets"
-  type = map(object({
-    cidr = string
-    az   = string
-  }))
 }
