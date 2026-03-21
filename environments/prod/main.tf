@@ -49,3 +49,62 @@ module "vpc-pri" {
   }
   natgw_az = "a"
 }
+
+
+// VPC Endpoints
+resource "aws_security_group" "vpce" {
+  vpc_id      = module.vpc.vpc_id
+  name        = "allow-private-subnets"
+  description = "Allow traffic from private subnets"
+}
+resource "aws_vpc_security_group_ingress_rule" "allow_vpc" {
+  security_group_id = aws_security_group.vpce.id
+
+  cidr_ipv4   = "10.0.0.0/16"
+  ip_protocol = "tcp"
+  from_port   = 443
+  to_port     = 443
+}
+resource "aws_vpc_security_group_egress_rule" "allow_egress_all" {
+  security_group_id = aws_security_group.vpce.id
+
+  cidr_ipv4   = "0.0.0.0/0"
+  ip_protocol = "-1"
+  from_port   = 0
+  to_port     = 0
+}
+module "vpc-endpoints" {
+  source = "../../modules/vpc-endpoint"
+  vpc_id = module.vpc.vpc_id
+  endpoints = {
+    ecr_api = {
+      service_name        = "com.amazonaws.ap-northeast-2.ecr.api"
+      endpoint_type       = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = module.vpc-pri.private_subnet_ids
+      security_group_ids  = [aws_security_group.vpce.id]
+    }
+
+    ecr_dkr = {
+      service_name        = "com.amazonaws.ap-northeast-2.ecr.dkr"
+      endpoint_type       = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = module.vpc-pri.private_subnet_ids
+      security_group_ids  = [aws_security_group.vpce.id]
+    }
+
+    s3 = {
+      service_name    = "com.amazonaws.ap-northeast-2.s3"
+      endpoint_type   = "Gateway"
+      route_table_ids = [module.vpc-pri.private_route_table_id]
+    }
+
+    sts = {
+      service_name        = "com.amazonaws.ap-northeast-2.sts"
+      endpoint_type       = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = module.vpc-pri.private_subnet_ids
+      security_group_ids  = [aws_security_group.vpce.id]
+    }
+  }
+}
