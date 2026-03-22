@@ -41,11 +41,6 @@ locals {
 }
 
 // State Backend (S3)
-resource "aws_kms_key" "state_key" {
-  description             = "This key is used to encrypt tfstate bucket objects"
-  deletion_window_in_days = 10
-}
-
 resource "aws_s3_bucket" "state_backend" {
   bucket = "hivewiki-infra-state-bucket"
 }
