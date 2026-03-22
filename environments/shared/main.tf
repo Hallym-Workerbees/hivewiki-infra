@@ -50,12 +50,14 @@ resource "aws_s3_bucket" "state_backend" {
   bucket = "hivewiki-infra-state-bucket"
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "state_kms_encryption" {
+# We intentionally use S3-managed encryption (SSE-S3 / AES256) instead of SSE-KMS
+# - There is currently no regulatory or compliance requirement to use customer-managed KMS keys.
+# - SSE-S3 provides encryption at rest with lower operational complexity.
+resource "aws_s3_bucket_server_side_encryption_configuration" "state_sse_s3" {
   bucket = aws_s3_bucket.state_backend.id
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.state_key.arn
-      sse_algorithm     = "aws:kms"
+      sse_algorithm = "AES256"
     }
   }
 }
