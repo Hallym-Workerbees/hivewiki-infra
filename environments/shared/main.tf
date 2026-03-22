@@ -107,7 +107,7 @@ resource "aws_ecr_lifecycle_policy" "app_repositories" {
         description  = "Keep last 10 prod images"
         selection = {
           tagStatus     = "tagged"
-          tagPrefixList = ["prod", "main", "stable"]
+          tagPrefixList = ["prod"]
           countType     = "imageCountMoreThan"
           countNumber   = 10
         }
@@ -120,7 +120,7 @@ resource "aws_ecr_lifecycle_policy" "app_repositories" {
         description  = "Keep last 10 dev and staging images"
         selection = {
           tagStatus     = "tagged"
-          tagPrefixList = ["dev", "staging", "test"]
+          tagPrefixList = ["dev"]
           countType     = "imageCountMoreThan"
           countNumber   = 10
         }
