@@ -196,7 +196,7 @@ resource "aws_ecr_repository_creation_template" "cache_template" {
         description  = "Expire tagged images older than 14 days"
         selection = {
           tagStatus   = "tagged"
-          countType   = "sinceImagePushed"
+          countType   = "sinceImagePulled"
           countUnit   = "days"
           countNumber = 14
         }
