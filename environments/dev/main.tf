@@ -70,6 +70,13 @@ module "vpc-endpoints" {
   source = "../../modules/vpc-endpoint"
   vpc_id = module.vpc.vpc_id
   endpoints = {
+    ec2 = {
+      service_name        = "com.amazonaws.ap-northeast-2.ec2"
+      endpoint_type       = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = module.vpc-pri.private_subnet_ids
+      security_group_ids  = [aws_security_group.vpce.id]
+    }
     ecr_api = {
       service_name        = "com.amazonaws.ap-northeast-2.ecr.api"
       endpoint_type       = "Interface"
@@ -77,7 +84,6 @@ module "vpc-endpoints" {
       subnet_ids          = module.vpc-pri.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
-
     ecr_dkr = {
       service_name        = "com.amazonaws.ap-northeast-2.ecr.dkr"
       endpoint_type       = "Interface"
@@ -85,15 +91,34 @@ module "vpc-endpoints" {
       subnet_ids          = module.vpc-pri.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
-
     s3 = {
       service_name    = "com.amazonaws.ap-northeast-2.s3"
       endpoint_type   = "Gateway"
       route_table_ids = [module.vpc-pri.private_route_table_id]
     }
-
+    cloudwatch_logs = {
+      service_name        = "com.amazonaws.ap-northeast-2.logs"
+      endpoint_type       = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = module.vpc-pri.private_subnet_ids
+      security_group_ids  = [aws_security_group.vpce.id]
+    }
     sts = {
       service_name        = "com.amazonaws.ap-northeast-2.sts"
+      endpoint_type       = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = module.vpc-pri.private_subnet_ids
+      security_group_ids  = [aws_security_group.vpce.id]
+    }
+    eks_auth = {
+      service_name        = "com.amazonaws.ap-northeast-2.eks-auth"
+      endpoint_type       = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = module.vpc-pri.private_subnet_ids
+      security_group_ids  = [aws_security_group.vpce.id]
+    }
+    eks = {
+      service_name        = "com.amazonaws.ap-northeast-2.eks"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc-pri.private_subnet_ids
