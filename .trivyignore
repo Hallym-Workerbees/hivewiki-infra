@@ -1,0 +1,3 @@
+# Ignore S3 CMK requirement (cost optimization)
+AWS-0132
+AVD-AWS-0132
