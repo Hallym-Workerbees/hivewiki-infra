@@ -132,3 +132,23 @@ module "s3-statics" {
 
   bucket_name = "hivewiki-statics-prod"
 }
+
+module "s3-archive" {
+  source             = "../../modules/s3-archive"
+  backup_bucket_name = "hivewiki-archive-bucket-prod"
+  backup_bucket_lifecycle_rules = {
+    daily = {
+      id     = "daily-backup-retention"
+      prefix = ""
+      transitions = [
+        {
+          days          = 30
+          storage_class = "STANDARD_IA"
+        },
+        { days          = 90
+          storage_class = "DEEP_ARCHIVE"
+        }
+      ]
+    }
+  }
+}
