@@ -126,3 +126,9 @@ module "vpc-endpoints" {
     }
   }
 }
+
+module "s3-statics" {
+  source = "../../modules/s3-cloudfront"
+
+  bucket_name = "hivewiki-statics-dev"
+}
