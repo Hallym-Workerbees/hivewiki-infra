@@ -1,3 +1,7 @@
 # Ignore S3 CMK requirement (cost optimization)
 AWS-0132
 AVD-AWS-0132
+
+# Ignore CloudFront WAF requirement (static content / caching use-case)
+AWS-0011
+AVD-AWS-0011
