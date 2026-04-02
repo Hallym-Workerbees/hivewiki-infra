@@ -168,6 +168,10 @@ resource "aws_ecr_pull_through_cache_rule" "cache" {
   upstream_registry_url = each.value.upstream_registry_url
 
   credential_arn = each.value.needs_auth ? aws_secretsmanager_secret.cache_cred[each.key].arn : null
+
+  depends_on = [
+    aws_secretsmanager_secret_version.cache_cred
+  ]
 }
 
 resource "aws_ecr_repository_creation_template" "cache_template" {
@@ -190,12 +194,12 @@ resource "aws_ecr_repository_creation_template" "cache_template" {
     rules = [
       {
         rulePriority = 1
-        description  = "Expire tagged images older than 14 days"
+        description  = "Expire untagged images older than 5 days"
         selection = {
-          tagStatus   = "tagged"
-          countType   = "sinceImagePulled"
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
           countUnit   = "days"
-          countNumber = 14
+          countNumber = 5
         }
         action = {
           type = "expire"
@@ -203,12 +207,29 @@ resource "aws_ecr_repository_creation_template" "cache_template" {
       },
       {
         rulePriority = 2
-        description  = "Expire untagged images older than 5 days"
+        description  = "Archive images not pulled for 30 days"
         selection = {
-          tagStatus   = "untagged"
-          countType   = "sinceImagePushed"
-          countUnit   = "days"
-          countNumber = 5
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
+          countType      = "sinceImagePulled"
+          countUnit      = "days"
+          countNumber    = 30
+        }
+        action = {
+          type               = "transition"
+          targetStorageClass = "archive"
+        }
+      },
+      {
+        rulePriority = 3
+        description  = "Expire archived images after 180 days in archive"
+        selection = {
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
+          storageClass   = "archive"
+          countType      = "sinceImageTransitioned"
+          countUnit      = "days"
+          countNumber    = 180
         }
         action = {
           type = "expire"
