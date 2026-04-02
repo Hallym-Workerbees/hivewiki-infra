@@ -209,10 +209,11 @@ resource "aws_ecr_repository_creation_template" "cache_template" {
         rulePriority = 2
         description  = "Archive images not pulled for 30 days"
         selection = {
-          tagStatus   = "any"
-          countType   = "sinceImagePulled"
-          countUnit   = "days"
-          countNumber = 30
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
+          countType      = "sinceImagePulled"
+          countUnit      = "days"
+          countNumber    = 30
         }
         action = {
           type               = "transition"
@@ -223,11 +224,12 @@ resource "aws_ecr_repository_creation_template" "cache_template" {
         rulePriority = 3
         description  = "Expire archived images after 180 days in archive"
         selection = {
-          tagStatus    = "any"
-          storageClass = "archive"
-          countType    = "sinceImageTransitioned"
-          countUnit    = "days"
-          countNumber  = 180
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
+          storageClass   = "archive"
+          countType      = "sinceImageTransitioned"
+          countUnit      = "days"
+          countNumber    = 180
         }
         action = {
           type = "expire"
