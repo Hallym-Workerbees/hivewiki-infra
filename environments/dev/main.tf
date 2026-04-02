@@ -1,3 +1,15 @@
+##########
+# Remote State: shred
+##########
+data "terraform_remote_state" "shared" {
+  backend = "s3"
+  config = {
+    bucket = "hivewiki-infra-state-bucket"
+    key    = "shared/terraform.tfstate"
+    region = "ap-northeast-2"
+  }
+}
+
 // vpc
 module "vpc" {
   source       = "../../modules/vpc"
@@ -150,5 +162,60 @@ module "s3-archive" {
         }
       ]
     }
+  }
+}
+
+// eks
+
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 21.16.0"
+
+  name               = var.cluster_name
+  kubernetes_version = "1.35"
+
+  # Disable EKS auto-mode
+  compute_config = {
+    enabled = false
+  }
+
+  vpc_id = module.vpc.vpc_id
+
+  addons = {
+    coredns = {}
+    eks-pod-identity-agent = {
+      before_compute = true
+    }
+  }
+
+  eks_managed_node_groups = {
+    system = {
+      # Amazon Linux 2023 kernel-6.18 (64-bit ARM)
+      ami_type       = "ami-0e31683998cedb019"
+      instance_types = ["t4g.large"]
+
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
+    }
+  }
+
+  access_entries = {
+    admins = {
+      principal_arn = data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+
+    }
+  }
+
+  tags = {
+    Environment = "dev"
   }
 }
