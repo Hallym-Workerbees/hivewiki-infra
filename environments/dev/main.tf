@@ -1,6 +1,6 @@
-##########
-# Remote State: shred
-##########
+############################
+# Remote State from shared #
+############################
 data "terraform_remote_state" "shared" {
   backend = "s3"
   config = {
@@ -8,6 +8,17 @@ data "terraform_remote_state" "shared" {
     key    = "shared/terraform.tfstate"
     region = "ap-northeast-2"
   }
+}
+
+##########
+# Locals #
+##########
+locals {
+  eks_addons = toset([
+    "coredns",
+    "eks-pod-identity-agent",
+    "aws-ebs-sci-driver"
+  ])
 }
 
 #######
@@ -75,7 +86,7 @@ resource "aws_vpc_security_group_ingress_rule" "allow_vpc" {
   to_port     = 443
 }
 
-module "vpc-endpoints" {
+module "vpc_endpoints" {
   source = "../../modules/vpc-endpoint"
   vpc_id = module.vpc.vpc_id
   endpoints = {
@@ -139,7 +150,7 @@ module "vpc-endpoints" {
 ###################
 # S3 + Cloudfront #
 ###################
-module "s3-statics" {
+module "s3_statics" {
   source = "../../modules/s3-cloudfront"
 
   bucket_name = "hivewiki-statics-dev"
@@ -149,7 +160,7 @@ module "s3-statics" {
 ################
 # S3 (Archive) #
 ################
-module "s3-archive" {
+module "s3_archive" {
   source             = "../../modules/s3-archive"
   backup_bucket_name = "hivewiki-archive-bucket-dev"
   backup_bucket_lifecycle_rules = {
@@ -169,57 +180,145 @@ module "s3-archive" {
   }
 }
 
-// eks
+########################################################
+# EKS - Cluster                                        #
+#                                                      #
+# NOTE:                                                #
+# By default, EKS secrets are protected with enveloped #
+# encryption in EKS version 1.28 or higher             #
+########################################################
+module "eks_cluster" {
+  source = "../../modules/eks-cluster"
 
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "~> 21.16.0"
-
-  name               = var.cluster_name
+  cluster_name       = var.cluster_name
   kubernetes_version = "1.35"
+  subnet_ids         = module.vpc.private_subnet_ids
 
-  # Disable EKS auto-mode
-  compute_config = {
-    enabled = false
-  }
+  enabled_cluster_log_types = []
+  cp_scaling_tier           = "standard"
+  # Disable kube-proxy, VPC-CNI
+  bootstrap_self_managed_addons = false
+}
 
-  vpc_id = module.vpc.vpc_id
+######################
+# EKS - Access Entry #
+######################
+module "eks_access_entry" {
+  source = "../../modules/eks-access-entry"
 
-  addons = {
-    coredns = {}
-    eks-pod-identity-agent = {
-      before_compute = true
+  cluster_name  = module.eks_cluster.cluster_name
+  principal_arn = data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
+
+  eks_access_policy_association = {
+    clusteradmin = {
+      policy_arn        = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+      access_scope_type = "cluster"
     }
-  }
-
-  eks_managed_node_groups = {
-    system = {
-      # Amazon Linux 2023 kernel-6.18 (64-bit ARM)
-      ami_type       = "ami-0e31683998cedb019"
-      instance_types = ["t4g.large"]
-
-      min_size     = 1
-      max_size     = 1
-      desired_size = 1
-    }
-  }
-
-  access_entries = {
-    admins = {
-      principal_arn = data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
-      policy_associations = {
-        admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-
-    }
-  }
-
-  tags = {
-    Environment = "dev"
   }
 }
+
+###############################################################
+# EKS - Node Group                                            #
+# This module ignores desired size                            #
+###############################################################
+module "eks_node_group" {
+  source = "../../modules/eks-node-group"
+
+  cluster_name    = module.eks_cluster.cluster_name
+  node_group_name = "${var.cluster_name}-ng"
+
+  ami_type       = "AL2023_ARM_64_STANDARD"
+  subnet_ids     = module.vpc.private_subnet_ids
+  instance_types = ["t4g.large"]
+  capacity_type  = "ON_DEMAND"
+  disk_size      = 20
+
+  # We intentionally use least node group scale, because we use karpenter + spot to reduce costs
+  scaling = {
+    desired_size = 1
+    min_size     = 1
+    max_size     = 1
+  }
+
+  # Label for Node
+  labels = {
+    dedicated = "infra"
+  }
+
+  # Pods for operations only(e.g. GitOps, Observability, other system pods)
+  # NOTE:
+  # - You have to grant tolerations to your pods
+  # - taint `cilium` ensures application pods will only be scheduled once Cilium is ready to manage them.
+  #   - check: https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/
+  taints = {
+    infra = {
+      key    = "dedicated"
+      value  = "infra"
+      effect = "NO_SCHEDULE"
+    },
+    cilium = {
+      key    = "node.cilium.io/agent-not-ready"
+      value  = "true"
+      effect = "NO_EXECUTE"
+    }
+  }
+
+  # Role policy Attachment
+  # check: https://docs.aws.amazon.com/eks/latest/userguide/create-node-role.html
+  role_policy_attachment = [
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
+  ]
+}
+
+################
+# EKS - Addons #
+################
+module "eks-addons" {
+  source   = "../../modules/eks-addons"
+  for_each = local.eks_addons
+
+  cluster_name = module.eks_cluster.cluster_name
+  addon_name   = each.value
+}
+
+############################
+# EKS - Pod Identity Agent #
+############################
+
+########
+# Helm #
+########
+provider "helm" {
+  kubernetes = {
+    host                   = module.eks_cluster.endpoint
+    cluster_ca_certificate = base64decode(module.eks_cluster.ca_certificate)
+    exec = {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", var.cluster_name]
+      command     = "aws"
+    }
+  }
+}
+
+#################
+# Helm - Cilium #
+#################
+# resource "helm_release" "cilium" {
+#   name       = cilium
+#   repository = "https://helm.cilium.io/"
+#   chart      = "cilium"
+#   version    = "1.19.2"
+#
+#   namespace = "kube-system"
+#
+#   dynamic "set" {
+#
+#   }
+# }
+
+
+#TODO
+# eks-pod-identity-agent add-on
+# pod identity association
+# 필요하면 추가 add-on (ebs-csi, observability, lb controller 등)

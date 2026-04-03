@@ -81,7 +81,7 @@ resource "aws_iam_role" "eks_fullaccess" {
   max_session_duration = 3600
 
   tags = {
-    ManagedBy = "Terraform"
+    ManagedBy = "OpenTofu"
     Purpose   = "HumanEKSAccess"
   }
 }
