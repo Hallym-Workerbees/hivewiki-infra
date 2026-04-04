@@ -1,0 +1,135 @@
+kubeProxyReplacement: true
+k8sServiceHost: 4C7C55528E2A20FB50DC3A0C0D0FC687.gr7.ap-northeast-2.eks.amazonaws.com
+k8sServicePort: 443
+
+serviceAccounts:
+  operator:
+    create: true
+    name: cilium-operator
+
+operator:
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+    - key: "node.kubernetes.io/not-ready"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node.cilium.io/agent-not-ready"
+      operator: "Exists"
+      effect: "NoExecute"
+  replicas: 1
+
+envoy:
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+    - key: "node.kubernetes.io/not-ready"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node.cilium.io/agent-not-ready"
+      operator: "Exists"
+      effect: "NoExecute"
+  nodeSelector:
+    dedicated: "infra"
+
+  ui:
+    tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+    - key: "node.kubernetes.io/not-ready"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node.cilium.io/agent-not-ready"
+      operator: "Exists"
+      effect: "NoExecute"
+    nodeSelector:
+      dedicated: "infra"
+
+tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "infra"
+    effect: "NoSchedule"
+  - key: "node.kubernetes.io/not-ready"
+    operator: "Exists"
+    effect: "NoSchedule"
+  - key: "node.cilium.io/agent-not-ready"
+    operator: "Exists"
+    effect: "NoExecute"
+
+eni:
+  enabled: true
+  nodeSpec:
+    firstInterfaceIndex: 0
+    subnetIDs:
+    - subnet-02153799dd8eb6118
+    - subnet-0c42e71d241e159ae
+
+ipam:
+  mode: eni
+  nodeSpec:
+    ipamPreAllocate: 8
+    ipamMinAllocate: 8
+
+routingMode: native
+enableIPv4Masquerade: true
+enableIPv6Masquerade: false
+egressMasqueradeInterfaces: "eth+"
+
+gatewayAPI:
+  enabled: false
+
+ingressController:
+  enabled: false
+
+prometheus:
+  enabled: true
+
+hubble:
+  enabled: false
+  relay:
+    tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "infra"
+        effect: "NoSchedule"
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node.cilium.io/agent-not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+    nodeSelector:
+      dedicated: "infra"
+    enabled: false
+    prometheus:
+      enabled: true
+  ui:
+    enabled: false
+    tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "infra"
+        effect: "NoSchedule"
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node.cilium.io/agent-not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+  metrics:
+    enabledOpenMetrics: true
+    enabled:
+      - dns
+      - drop:sourceContext=pod;destinationContext=pod
+      - tcp
+      - flow
+      - port-distribution
+      - httpV2
+      - policy

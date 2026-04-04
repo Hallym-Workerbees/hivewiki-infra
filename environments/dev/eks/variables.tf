@@ -3,3 +3,8 @@ variable "cluster_name" {
   type        = string
   default     = "hivewiki-dev"
 }
+
+variable "aws_region" {
+  type    = string
+  default = "ap-northeast-2"
+}

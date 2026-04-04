@@ -11,13 +11,15 @@ data "terraform_remote_state" "shared" {
 }
 
 ##########
-# Locals #
+# locals #
 ##########
 locals {
   eks_addons = toset([
     "coredns",
+    "kube-proxy",
+    "vpc-cni",
+    "aws-ebs-csi-driver",
     "eks-pod-identity-agent",
-    "aws-ebs-sci-driver"
   ])
 }
 
@@ -25,7 +27,7 @@ locals {
 # VPC #
 #######
 module "vpc" {
-  source       = "../../modules/vpc"
+  source       = "../../../modules/vpc"
   cluster_name = var.cluster_name
   cidr_block   = "10.1.0.0/16"
   azs = {
@@ -87,7 +89,7 @@ resource "aws_vpc_security_group_ingress_rule" "allow_vpc" {
 }
 
 module "vpc_endpoints" {
-  source = "../../modules/vpc-endpoint"
+  source = "../../../modules/vpc-endpoint"
   vpc_id = module.vpc.vpc_id
   endpoints = {
     ec2 = {
@@ -151,7 +153,7 @@ module "vpc_endpoints" {
 # S3 + Cloudfront #
 ###################
 module "s3_statics" {
-  source = "../../modules/s3-cloudfront"
+  source = "../../../modules/s3-cloudfront"
 
   bucket_name = "hivewiki-statics-dev"
 }
@@ -161,7 +163,7 @@ module "s3_statics" {
 # S3 (Archive) #
 ################
 module "s3_archive" {
-  source             = "../../modules/s3-archive"
+  source             = "../../../modules/s3-archive"
   backup_bucket_name = "hivewiki-archive-bucket-dev"
   backup_bucket_lifecycle_rules = {
     daily = {
@@ -188,7 +190,7 @@ module "s3_archive" {
 # encryption in EKS version 1.28 or higher             #
 ########################################################
 module "eks_cluster" {
-  source = "../../modules/eks-cluster"
+  source = "../../../modules/eks-cluster"
 
   cluster_name       = var.cluster_name
   kubernetes_version = "1.35"
@@ -204,7 +206,7 @@ module "eks_cluster" {
 # EKS - Access Entry #
 ######################
 module "eks_access_entry" {
-  source = "../../modules/eks-access-entry"
+  source = "../../../modules/eks-access-entry"
 
   cluster_name  = module.eks_cluster.cluster_name
   principal_arn = data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
@@ -217,12 +219,12 @@ module "eks_access_entry" {
   }
 }
 
-###############################################################
-# EKS - Node Group                                            #
-# This module ignores desired size                            #
-###############################################################
+#####################################
+# EKS - Node Group                  #
+# This module ignores desired size  #
+#####################################
 module "eks_node_group" {
-  source = "../../modules/eks-node-group"
+  source = "../../../modules/eks-node-group"
 
   cluster_name    = module.eks_cluster.cluster_name
   node_group_name = "${var.cluster_name}-ng"
@@ -230,8 +232,9 @@ module "eks_node_group" {
   ami_type       = "AL2023_ARM_64_STANDARD"
   subnet_ids     = module.vpc.private_subnet_ids
   instance_types = ["t4g.large"]
-  capacity_type  = "ON_DEMAND"
-  disk_size      = 20
+
+  capacity_type = "SPOT"
+  disk_size     = 20
 
   # We intentionally use least node group scale, because we use karpenter + spot to reduce costs
   scaling = {
@@ -246,22 +249,14 @@ module "eks_node_group" {
   }
 
   # Pods for operations only(e.g. GitOps, Observability, other system pods)
-  # NOTE:
-  # - You have to grant tolerations to your pods
-  # - taint `cilium` ensures application pods will only be scheduled once Cilium is ready to manage them.
-  #   - check: https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/
-  taints = {
-    infra = {
-      key    = "dedicated"
-      value  = "infra"
-      effect = "NO_SCHEDULE"
-    },
-    cilium = {
-      key    = "node.cilium.io/agent-not-ready"
-      value  = "true"
-      effect = "NO_EXECUTE"
-    }
-  }
+  taints = {}
+  # taints = {
+  #   infra = {
+  #     key    = "dedicated"
+  #     value  = "infra"
+  #     effect = "NO_SCHEDULE"
+  #   },
+  # }
 
   # Role policy Attachment
   # check: https://docs.aws.amazon.com/eks/latest/userguide/create-node-role.html
@@ -275,50 +270,73 @@ module "eks_node_group" {
 # EKS - Addons #
 ################
 module "eks-addons" {
-  source   = "../../modules/eks-addons"
+  source   = "../../../modules/eks-addons"
   for_each = local.eks_addons
 
   cluster_name = module.eks_cluster.cluster_name
   addon_name   = each.value
 }
 
-############################
-# EKS - Pod Identity Agent #
-############################
+resource "aws_iam_role" "vpc_cni" {
+  name = "${var.cluster_name}-vpc-cni"
 
-########
-# Helm #
-########
-provider "helm" {
-  kubernetes = {
-    host                   = module.eks_cluster.endpoint
-    cluster_ca_certificate = base64decode(module.eks_cluster.ca_certificate)
-    exec = {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", var.cluster_name]
-      command     = "aws"
-    }
-  }
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
 }
 
-#################
-# Helm - Cilium #
-#################
-# resource "helm_release" "cilium" {
-#   name       = cilium
-#   repository = "https://helm.cilium.io/"
-#   chart      = "cilium"
-#   version    = "1.19.2"
-#
-#   namespace = "kube-system"
-#
-#   dynamic "set" {
-#
-#   }
-# }
+resource "aws_iam_role_policy_attachment" "vpc_cni" {
+  role       = aws_iam_role.vpc_cni.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
 
+resource "aws_eks_pod_identity_association" "vpc_cni" {
+  cluster_name    = module.eks_cluster.cluster_name
+  namespace       = "kube-system"
+  service_account = "aws-node"
+  role_arn        = aws_iam_role.vpc_cni.arn
+}
 
-#TODO
-# eks-pod-identity-agent add-on
-# pod identity association
-# 필요하면 추가 add-on (ebs-csi, observability, lb controller 등)
+resource "aws_iam_role" "ebs_csi" {
+  name = "${var.cluster_name}-ebs-csi"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi" {
+  role       = aws_iam_role.ebs_csi.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+resource "aws_eks_pod_identity_association" "ebs_csi" {
+  cluster_name    = var.cluster_name
+  namespace       = "kube-system"
+  service_account = "ebs-csi-controller-sa"
+  role_arn        = aws_iam_role.ebs_csi.arn
+}
