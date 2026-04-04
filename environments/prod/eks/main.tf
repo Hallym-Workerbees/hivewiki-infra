@@ -10,14 +10,14 @@ data "terraform_remote_state" "shared" {
   }
 }
 
-###################################
-# Remote State from AWS Dev Infra #
-###################################
-data "terraform_remote_state" "dev_infra" {
+####################################
+# Remote State from AWS Prod Infra #
+####################################
+data "terraform_remote_state" "prod_infra" {
   backend = "s3"
   config = {
     bucket = "hivewiki-infra-state-bucket"
-    key    = "dev/infra/terraform.tfstate"
+    key    = "prod/infra/terraform.tfstate"
     region = "ap-northeast-2"
   }
 }
@@ -26,8 +26,8 @@ data "terraform_remote_state" "dev_infra" {
 # Kubectl #
 ###########
 provider "kubectl" {
-  host                   = data.terraform_remote_state.dev_infra.outputs.eks_endpoint
-  cluster_ca_certificate = base64decode(data.terraform_remote_state.dev_infra.outputs.eks_ca_certificate)
+  host                   = data.terraform_remote_state.prod_infra.outputs.eks_endpoint
+  cluster_ca_certificate = base64decode(data.terraform_remote_state.prod_infra.outputs.eks_ca_certificate)
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
     args = [
@@ -49,8 +49,8 @@ provider "kubectl" {
 ########
 provider "helm" {
   kubernetes = {
-    host                   = data.terraform_remote_state.dev_infra.outputs.eks_endpoint
-    cluster_ca_certificate = base64decode(data.terraform_remote_state.dev_infra.outputs.eks_ca_certificate)
+    host                   = data.terraform_remote_state.prod_infra.outputs.eks_endpoint
+    cluster_ca_certificate = base64decode(data.terraform_remote_state.prod_infra.outputs.eks_ca_certificate)
     exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
       args = [
@@ -119,7 +119,7 @@ resource "helm_release" "cilium" {
       }
 
       operator = {
-        replicas = 1
+        replicas = 2
         image = {
           repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/operator"
         }

@@ -29,45 +29,46 @@ locals {
 module "vpc" {
   source       = "../../../modules/vpc"
   cluster_name = var.cluster_name
-  cidr_block   = "10.1.0.0/16"
+  cidr_block   = "10.0.0.0/16"
   azs = {
     a = "ap-northeast-2a"
     c = "ap-northeast-2c"
   }
   public_subnets = {
     a = {
-      cidr = "10.1.0.0/24"
+      cidr = "10.0.0.0/24"
       az   = "a"
     }
     c = {
-      cidr = "10.1.1.0/24"
+      cidr = "10.0.1.0/24"
       az   = "c"
     }
   }
   private_subnets = {
     a = {
-      cidr = "10.1.100.0/24"
+      cidr = "10.0.100.0/24"
       az   = "a"
     }
     c = {
-      cidr = "10.1.101.0/24"
+      cidr = "10.0.101.0/24"
       az   = "c"
     }
   }
   db_subnets = {
     a = {
-      cidr = "10.1.200.0/24"
+      cidr = "10.0.200.0/24"
       az   = "a"
     }
     c = {
-      cidr = "10.1.201.0/24"
+      cidr = "10.0.201.0/24"
       az   = "c"
     }
   }
+
   # When reducing the number of NAT gateway AZs,
   # it is safer to first set `natgw_az` to an empty list and apply,
   # then recreate the NAT gateway with the desired AZs.
-  natgw_az = ["a"]
+  natgw_az = ["a", "c"]
 }
 
 #################
@@ -78,17 +79,16 @@ resource "aws_security_group" "vpce" {
   name        = "allow-private-subnets"
   description = "Allow traffic from private subnets"
 }
-
 resource "aws_vpc_security_group_ingress_rule" "allow_vpc" {
   security_group_id = aws_security_group.vpce.id
 
-  cidr_ipv4   = "10.1.0.0/16"
+  cidr_ipv4   = "10.0.0.0/16"
   ip_protocol = "tcp"
   from_port   = 443
   to_port     = 443
 }
 
-module "vpc_endpoints" {
+module "vpc-endpoints" {
   source = "../../../modules/vpc-endpoint"
   vpc_id = module.vpc.vpc_id
   endpoints = {
@@ -152,19 +152,18 @@ module "vpc_endpoints" {
 ###################
 # S3 + Cloudfront #
 ###################
-module "s3_statics" {
+module "s3-statics" {
   source = "../../../modules/s3-cloudfront"
 
-  bucket_name = "hivewiki-statics-dev"
+  bucket_name = "hivewiki-statics-prod"
 }
-
 
 ################
 # S3 (Archive) #
 ################
-module "s3_archive" {
+module "s3-archive" {
   source             = "../../../modules/s3-archive"
-  backup_bucket_name = "hivewiki-archive-bucket-dev"
+  backup_bucket_name = "hivewiki-archive-bucket-prod"
   backup_bucket_lifecycle_rules = {
     daily = {
       id     = "daily-backup-retention"
@@ -233,7 +232,7 @@ module "eks_node_group" {
   subnet_ids     = module.vpc.private_subnet_ids
   instance_types = ["t4g.large"]
 
-  capacity_type = "SPOT"
+  capacity_type = "ON_DEMAND"
   disk_size     = 20
 
   # We intentionally use least node group scale, because we use karpenter + spot to reduce costs
@@ -248,7 +247,6 @@ module "eks_node_group" {
     dedicated = "infra"
   }
 
-  # Pods for operations only(e.g. GitOps, Observability, other system pods)
   taints = {}
 
   # Role policy Attachment

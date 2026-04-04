@@ -11,5 +11,5 @@ License:
 Notes:
 
 - Vendored without modification
-- Intended for installation via Terraform kubernetes provider
+- Intended for installation via Terraform kubectl provider
 - Prefer Standard channel CRDs for safer upgrades
