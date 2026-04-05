@@ -18,9 +18,7 @@ jobs:
       matrix:
         working_directory:
           - environments/dev/infra
-          - environments/dev/eks
           - environments/prod/infra
-          - environments/prod/eks
           - environments/shared
 
     defaults:
