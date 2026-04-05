@@ -17,8 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         working_directory:
-          - environments/dev
-          - environments/prod
+          - environments/dev/infra
+          - environments/dev/eks
+          - environments/prod/infra
+          - environments/prod/eks
           - environments/shared
 
     defaults:
