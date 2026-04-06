@@ -24,9 +24,9 @@ resource "aws_vpc_security_group_egress_rule" "bastion_internet" {
   security_group_id = aws_security_group.bastion.id
 
   cidr_ipv4   = "0.0.0.0/0"
-  from_port   = -1
-  ip_protocol = "-1"
-  to_port     = -1
+  from_port   = 443
+  ip_protocol = "tcp"
+  to_port     = 443
 }
 
 resource "aws_iam_instance_profile" "ssm" {
@@ -40,9 +40,18 @@ resource "aws_instance" "bastion" {
 
   subnet_id                   = var.subnet_id
   vpc_security_group_ids      = [aws_security_group.bastion.id]
-  associate_public_ip_address = true
+  associate_public_ip_address = var.associate_public_ip_address
 
   iam_instance_profile = aws_iam_instance_profile.ssm.name
+
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    encrypted   = true
+    volume_type = "gp3"
+  }
 
   user_data                   = file("${path.module}/user_data.sh")
   user_data_replace_on_change = true

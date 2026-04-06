@@ -363,9 +363,10 @@ module "bastion" {
   count  = local.eks_private_mode ? 1 : 0
   source = "../../../modules/ec2-ssm-bastion"
 
-  name          = "bastion-prod"
-  vpc_id        = module.vpc.vpc_id
-  subnet_id     = module.vpc.public_subnet_ids[0]
-  instance_type = "t4g.nano"
-  eks_arn       = module.eks_cluster.arn
+  name                        = "bastion-prod"
+  vpc_id                      = module.vpc.vpc_id
+  subnet_id                   = module.vpc.private_subnet_ids[0]
+  instance_type               = "t4g.nano"
+  eks_arn                     = module.eks_cluster.arn
+  associate_public_ip_address = false
 }

@@ -23,3 +23,8 @@ variable "eks_arn" {
   description = "EKS Arn"
   type        = string
 }
+
+variable "associate_public_ip_address" {
+  description = "Associate public IP address"
+  type        = bool
+}
