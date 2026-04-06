@@ -17,7 +17,7 @@ locals {
   vpc_cidr = "10.1.0.0/16"
 
   # Enable/disable EKS private access
-  eks_private_mode = false
+  eks_private_mode = true
 
   # EKS Addon list
   eks_addons = toset([
