@@ -14,6 +14,8 @@ data "terraform_remote_state" "shared" {
 # locals #
 ##########
 locals {
+  vpc_cidr = "10.1.0.0/16"
+
   # Enable/disable EKS private access
   eks_private_mode = true
 
@@ -33,7 +35,7 @@ locals {
 module "vpc" {
   source       = "../../../modules/vpc"
   cluster_name = var.cluster_name
-  cidr_block   = "10.1.0.0/16"
+  cidr_block   = local.vpc_cidr
   azs = {
     a = "ap-northeast-2a"
     c = "ap-northeast-2c"
@@ -199,7 +201,7 @@ module "eks_cluster" {
   cluster_name       = var.cluster_name
   kubernetes_version = "1.35"
   vpc_id             = module.vpc.vpc_id
-  vpc_cidr           = "10.1.0.0/16"
+  vpc_cidr           = local.vpc_cidr
   subnet_ids         = module.vpc.private_subnet_ids
   private_mode       = local.eks_private_mode
 

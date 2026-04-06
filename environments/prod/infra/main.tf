@@ -14,6 +14,12 @@ data "terraform_remote_state" "shared" {
 # locals #
 ##########
 locals {
+  vpc_cidr = "10.0.0.0/16"
+
+  # Enable/disable EKS private access
+  eks_private_mode = true
+
+  # EKS Addon list
   eks_addons = toset([
     "coredns",
     "kube-proxy",
@@ -29,7 +35,7 @@ locals {
 module "vpc" {
   source       = "../../../modules/vpc"
   cluster_name = var.cluster_name
-  cidr_block   = "10.0.0.0/16"
+  cidr_block   = local.vpc_cidr
   azs = {
     a = "ap-northeast-2a"
     c = "ap-northeast-2c"
@@ -193,18 +199,35 @@ module "eks_cluster" {
 
   cluster_name       = var.cluster_name
   kubernetes_version = "1.35"
+  vpc_id             = module.vpc.vpc_id
+  vpc_cidr           = local.vpc_cidr
   subnet_ids         = module.vpc.private_subnet_ids
+  private_mode       = local.eks_private_mode
 
   enabled_cluster_log_types = []
   cp_scaling_tier           = "standard"
-  # Disable kube-proxy, VPC-CNI
-  bootstrap_self_managed_addons = false
 }
 
 ######################
 # EKS - Access Entry #
 ######################
-module "eks_access_entry" {
+module "eks_access_entry_private" {
+  count  = local.eks_private_mode ? 1 : 0
+  source = "../../../modules/eks-access-entry"
+
+  cluster_name  = module.eks_cluster.cluster_name
+  principal_arn = module.bastion[0].bastion_role_arn
+
+  eks_access_policy_association = {
+    clusteradmin = {
+      policy_arn        = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+      access_scope_type = "cluster"
+    }
+  }
+}
+
+module "eks_access_entry_public" {
+  count  = local.eks_private_mode ? 0 : 1
   source = "../../../modules/eks-access-entry"
 
   cluster_name  = module.eks_cluster.cluster_name
@@ -220,7 +243,8 @@ module "eks_access_entry" {
 
 #####################################
 # EKS - Node Group                  #
-# This module ignores desired size  #
+# Desired Node group size is ignored #
+# when comparing the state           #
 #####################################
 module "eks_node_group" {
   source = "../../../modules/eks-node-group"
@@ -330,4 +354,18 @@ resource "aws_eks_pod_identity_association" "ebs_csi" {
   namespace       = "kube-system"
   service_account = "ebs-csi-controller-sa"
   role_arn        = aws_iam_role.ebs_csi.arn
+}
+
+################
+# Bastion Host #
+################
+module "bastion" {
+  count  = local.eks_private_mode ? 1 : 0
+  source = "../../../modules/ec2-ssm-bastion"
+
+  name          = "bastion-prod"
+  vpc_id        = module.vpc.vpc_id
+  subnet_id     = module.vpc.public_subnet_ids[0]
+  instance_type = "t4g.nano"
+  eks_arn       = module.eks_cluster.arn
 }
