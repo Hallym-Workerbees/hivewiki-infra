@@ -1,3 +1,20 @@
+resource "aws_security_group" "eks_control_plane_access" {
+  count = var.private_mode ? 1 : 0
+
+  name        = "${var.cluster_name}-eks-control-plane-access"
+  description = "Allow bastion to reach EKS private API"
+  vpc_id      = var.vpc_id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "eks_api_from_vpc" {
+  count = var.private_mode ? 1 : 0
+
+  security_group_id = aws_security_group.eks_control_plane_access[0].id
+  cidr_ipv4         = var.vpc_cidr
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
+}
 resource "aws_eks_cluster" "eks" {
   name = var.cluster_name
 
@@ -11,7 +28,11 @@ resource "aws_eks_cluster" "eks" {
   enabled_cluster_log_types     = var.enabled_cluster_log_types
 
   vpc_config {
-    subnet_ids = var.subnet_ids
+    subnet_ids              = var.subnet_ids
+    endpoint_public_access  = !var.private_mode
+    endpoint_private_access = var.private_mode
+
+    security_group_ids = aws_security_group.eks_control_plane_access[*].id
   }
 
   # Disable Auto-Mode

@@ -14,9 +14,24 @@ variable "bootstrap_self_managed_addons" {
   default     = true
 }
 
+variable "vpc_id" {
+  description = "VPC ID"
+  type        = string
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR Block"
+  type        = string
+}
+
 variable "subnet_ids" {
   description = "Subnet IDs"
   type        = list(string)
+}
+
+variable "private_mode" {
+  description = "Enable EKS private access"
+  type        = string
 }
 
 variable "cp_scaling_tier" {
