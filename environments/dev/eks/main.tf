@@ -1,0 +1,205 @@
+############################
+# Remote State from shared #
+############################
+data "terraform_remote_state" "shared" {
+  backend = "s3"
+  config = {
+    bucket = "hivewiki-infra-state-bucket"
+    key    = "shared/terraform.tfstate"
+    region = "ap-northeast-2"
+  }
+}
+
+###################################
+# Remote State from AWS Dev Infra #
+###################################
+data "terraform_remote_state" "dev_infra" {
+  backend = "s3"
+  config = {
+    bucket = "hivewiki-infra-state-bucket"
+    key    = "dev/infra/terraform.tfstate"
+    region = "ap-northeast-2"
+  }
+}
+
+###########
+# Kubectl #
+###########
+provider "kubectl" {
+  host                   = data.terraform_remote_state.dev_infra.outputs.eks_endpoint
+  cluster_ca_certificate = base64decode(data.terraform_remote_state.dev_infra.outputs.eks_ca_certificate)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    args = [
+      "eks",
+      "get-token",
+      "--cluster-name",
+      var.cluster_name,
+      "--region",
+      var.aws_region,
+      "--role-arn",
+      data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
+    ]
+    command = "aws"
+  }
+}
+
+########
+# Helm #
+########
+provider "helm" {
+  kubernetes = {
+    host                   = data.terraform_remote_state.dev_infra.outputs.eks_endpoint
+    cluster_ca_certificate = base64decode(data.terraform_remote_state.dev_infra.outputs.eks_ca_certificate)
+    exec = {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args = [
+        "eks",
+        "get-token",
+        "--cluster-name",
+        var.cluster_name,
+        "--region",
+        var.aws_region,
+        "--role-arn",
+        data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
+      ]
+      command = "aws"
+    }
+  }
+}
+
+#############################
+# Kubectl - Gateway API CRD #
+#############################
+data "kubectl_file_documents" "gateway_api_docs" {
+  content = file("${path.module}/../../../third-party/gateway-api/standard-install.yaml")
+}
+resource "kubectl_manifest" "gateway_api" {
+  for_each  = data.kubectl_file_documents.gateway_api_docs.manifests
+  yaml_body = each.value
+}
+
+#################
+# Helm - Cilium #
+#################
+resource "helm_release" "cilium" {
+  name       = "cilium"
+  repository = "https://helm.cilium.io/"
+  chart      = "cilium"
+  version    = "1.19.2"
+  namespace  = "kube-system"
+
+  wait    = true
+  atomic  = true
+  timeout = 900
+
+  values = [
+    yamlencode({
+      image = {
+        repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/cilium"
+      }
+
+      cni = {
+        chainingMode = "aws-cni"
+        exclusive    = false
+      }
+
+      routingMode          = "native"
+      enableIPv4Masquerade = false
+      enableIPv6Masquerade = false
+
+      prometheus = {
+        enabled = true
+        port    = 9962
+        metrics = [
+          "cilium_bpf_map_pressure",
+          "cilium_drop_total",
+          "cilium_forward_total",
+        ]
+      }
+
+      operator = {
+        replicas = 1
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/operator"
+        }
+        prometheus = {
+          enabled = true
+          port    = 9963
+        }
+      }
+
+      hubble = {
+        enabled = true
+
+        relay = {
+          enabled = true
+          image = {
+            repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/hubble-relay"
+          }
+          prometheus = {
+            enabled = true
+            port    = 9966
+          }
+        }
+
+        ui = {
+          enabled = true
+          frontend = {
+            image = {
+              repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/hubble-ui"
+            }
+          }
+          backend = {
+            image = {
+              repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/hubble-ui-backend"
+            }
+          }
+        }
+
+        metrics = {
+          enabledOpenMetrics = true
+          port               = 9965
+          enabled = [
+            "dns",
+            "drop:sourceContext=pod;destinationContext=pod",
+            "tcp",
+            "flow",
+            "port-distribution",
+            "httpV2",
+            "policy",
+          ]
+        }
+      }
+    })
+  ]
+}
+
+#########################
+# Helm - Metrics-Server #
+#########################
+resource "helm_release" "metrics-server" {
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  name       = "metrics-server"
+  namespace  = "default"
+
+  values = [
+    yamlencode({
+      image = {
+        repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/k8s/metrics-server/metrics-server"
+      }
+    })
+  ]
+}
+
+####################
+# Kubectl - ArgoCD #
+####################
+data "kubectl_file_documents" "argocd" {
+  content = file("${path.module}/../../../third-party/argocd/install.yaml")
+}
+resource "kubectl_manifest" "argocd" {
+  for_each  = data.kubectl_file_documents.argocd.manifests
+  yaml_body = each.value
+}

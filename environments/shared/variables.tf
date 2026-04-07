@@ -17,3 +17,8 @@ variable "ghcr_access_token" {
   type      = string
   sensitive = true
 }
+
+variable "require_mfa" {
+  type    = bool
+  default = true
+}

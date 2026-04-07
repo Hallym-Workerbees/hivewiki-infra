@@ -21,10 +21,23 @@ variable "public_subnets" {
   }))
 }
 
+variable "private_subnets" {
+  description = "Private subnets"
+  type = map(object({
+    cidr = string
+    az   = string
+  }))
+}
+
 variable "db_subnets" {
   description = "DB subnets"
   type = map(object({
     cidr = string
     az   = string
   }))
+}
+
+variable "natgw_az" {
+  description = "EIP alloc az for NATGW"
+  type        = list(string)
 }
