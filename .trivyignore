@@ -8,3 +8,13 @@ AVD-AWS-0011
 
 # Ignore EKS secret encryption requirement (cost optimization)
 AWS-0039
+
+# Ignore EKS public access findings in dev environment
+# Public endpoint is temporarily enabled for development convenience
+# Will be restricted (private endpoint) in production
+AWS-0040
+AWS-0041
+
+# Ignore unrestricted egress for package installation and external access
+# Required for pulling images and installing dependencies in dev environment
+AWS-0104
