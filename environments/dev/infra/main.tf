@@ -17,7 +17,7 @@ locals {
   vpc_cidr = "10.1.0.0/16"
 
   # Enable/disable EKS private access
-  eks_private_mode = false
+  eks_private_mode = true
 
   # EKS Addon list
   eks_addons = toset([
@@ -375,9 +375,10 @@ module "bastion" {
   associate_public_ip_address = true
 }
 
-#######
-# RDS #
-#######
+################################
+# RDS                          #
+# Using default KMS encrpytion #
+################################
 module "rds" {
   source = "../../../modules/rds"
 
@@ -404,4 +405,21 @@ module "rds" {
   backup_window           = "22:00-23:00"
   maintenance_window      = "Sun:21:00-Sun:22:00"
   apply_immediately       = true
+}
+
+################################
+# Elasticache - Serverless     #
+# Using default KMS encrpytion #
+################################
+module "cache" {
+  source = "../../../modules/elasticache-serverless"
+
+  cache_name            = "hivewiki-dev"
+  vpc_id                = module.vpc.vpc_id
+  subnet_ids            = module.vpc.db_subnet_ids
+  eks_security_group_id = module.eks_cluster.cluster_security_group_id
+
+  max_cache_usage     = 1
+  max_ecpu_per_second = 1000
+  max_snapshot        = null
 }

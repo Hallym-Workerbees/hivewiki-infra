@@ -81,8 +81,7 @@ resource "aws_iam_role" "bastion" {
   })
 
   tags = {
-    ManagedBy = "OpenTofu"
-    Purpose   = "Bastion"
+    Purpose = "Bastion"
   }
 }
 
