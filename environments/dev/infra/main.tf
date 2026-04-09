@@ -17,7 +17,7 @@ locals {
   vpc_cidr = "10.1.0.0/16"
 
   # Enable/disable EKS private access
-  eks_private_mode = true
+  eks_private_mode = false
 
   # EKS Addon list
   eks_addons = toset([
@@ -257,7 +257,7 @@ module "eks_node_group" {
 
   ami_type       = "AL2023_ARM_64_STANDARD"
   subnet_ids     = module.vpc.private_subnet_ids
-  instance_types = ["t4g.large"]
+  instance_types = ["t4g.medium"]
 
   capacity_type = "SPOT"
   disk_size     = 20
@@ -373,4 +373,35 @@ module "bastion" {
   instance_type               = "t4g.nano"
   eks_arn                     = module.eks_cluster.arn
   associate_public_ip_address = true
+}
+
+#######
+# RDS #
+#######
+module "rds" {
+  source = "../../../modules/rds"
+
+  db_identifier = "hivewiki-dev"
+
+  vpc_id                = module.vpc.vpc_id
+  subnet_ids            = module.vpc.db_subnet_ids
+  eks_security_group_id = module.eks_cluster.cluster_security_group_id
+
+  db_engine         = "postgres"
+  db_engine_version = "18.3"
+  db_instance_class = "db.t4g.micro"
+  db_storage_size   = 50
+  db_storage_type   = "gp3"
+
+  db_port  = 5342
+  multi_az = false
+
+  db_username = "hivewiki"
+  db_password = var.db_password
+  db_name     = "hivewiki"
+
+  backup_retention_period = 3
+  backup_window           = "22:00-23:00"
+  maintenance_window      = "Sun:21:00-Sun:22:00"
+  apply_immediately       = true
 }
