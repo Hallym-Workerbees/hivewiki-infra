@@ -13,8 +13,8 @@ variable "cache_name" {
   type        = string
 }
 
-variable "eks_security_group_id" {
-  description = "EKS SG ID"
+variable "allowed_security_group_id" {
+  description = "Allowed security group ID"
   type        = string
 }
 

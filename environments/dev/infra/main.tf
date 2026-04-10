@@ -17,7 +17,7 @@ locals {
   vpc_cidr = "10.1.0.0/16"
 
   # Enable/disable EKS private access
-  eks_private_mode = true
+  eks_private_mode = false
 
   # EKS Addon list
   eks_addons = toset([
@@ -384,9 +384,9 @@ module "rds" {
 
   db_identifier = "hivewiki-dev"
 
-  vpc_id                = module.vpc.vpc_id
-  subnet_ids            = module.vpc.db_subnet_ids
-  eks_security_group_id = module.eks_cluster.cluster_security_group_id
+  vpc_id                    = module.vpc.vpc_id
+  subnet_ids                = module.vpc.db_subnet_ids
+  allowed_security_group_id = module.eks_cluster.cluster_security_group_id
 
   db_engine         = "postgres"
   db_engine_version = "18.3"
@@ -394,7 +394,7 @@ module "rds" {
   db_storage_size   = 50
   db_storage_type   = "gp3"
 
-  db_port  = 5342
+  db_port  = 5432
   multi_az = false
 
   db_username = "hivewiki"
@@ -414,10 +414,10 @@ module "rds" {
 module "cache" {
   source = "../../../modules/elasticache-serverless"
 
-  cache_name            = "hivewiki-dev"
-  vpc_id                = module.vpc.vpc_id
-  subnet_ids            = module.vpc.db_subnet_ids
-  eks_security_group_id = module.eks_cluster.cluster_security_group_id
+  cache_name                = "hivewiki-dev"
+  vpc_id                    = module.vpc.vpc_id
+  subnet_ids                = module.vpc.db_subnet_ids
+  allowed_security_group_id = module.eks_cluster.cluster_security_group_id
 
   max_cache_usage     = 1
   max_ecpu_per_second = 1000

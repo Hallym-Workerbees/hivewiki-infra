@@ -10,5 +10,6 @@ variable "aws_region" {
 }
 
 variable "db_password" {
-  type = string
+  type      = string
+  sensitive = true
 }

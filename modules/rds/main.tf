@@ -11,7 +11,7 @@ resource "aws_security_group" "db" {
 
 resource "aws_vpc_security_group_ingress_rule" "allow_pg" {
   security_group_id            = aws_security_group.db.id
-  referenced_security_group_id = var.eks_security_group_id
+  referenced_security_group_id = var.allowed_security_group_id
   from_port                    = var.db_port
   to_port                      = var.db_port
   ip_protocol                  = "tcp"

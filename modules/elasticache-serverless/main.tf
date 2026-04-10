@@ -6,7 +6,7 @@ resource "aws_security_group" "cache" {
 
 resource "aws_vpc_security_group_ingress_rule" "cache_from_eks" {
   security_group_id            = aws_security_group.cache.id
-  referenced_security_group_id = var.eks_security_group_id
+  referenced_security_group_id = var.allowed_security_group_id
   from_port                    = 6379
   to_port                      = 6379
   ip_protocol                  = "tcp"

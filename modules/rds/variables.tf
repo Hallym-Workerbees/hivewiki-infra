@@ -18,8 +18,8 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
-variable "eks_security_group_id" {
-  description = "EKS security group ID"
+variable "allowed_security_group_id" {
+  description = "Allowed security group ID"
   type        = string
 }
 
@@ -66,6 +66,7 @@ variable "db_username" {
 variable "db_password" {
   description = "DB Password"
   type        = string
+  sensitive   = true
 }
 
 variable "backup_retention_period" {
