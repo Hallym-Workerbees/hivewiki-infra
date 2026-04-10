@@ -370,3 +370,51 @@ module "bastion" {
   eks_arn                     = module.eks_cluster.arn
   associate_public_ip_address = false
 }
+
+#######
+# RDS #
+#######
+module "rds" {
+  source = "../../../modules/rds"
+
+  db_identifier = "hivewiki-prod"
+
+  vpc_id                    = module.vpc.vpc_id
+  subnet_ids                = module.vpc.db_subnet_ids
+  allowed_security_group_id = module.eks_cluster.cluster_security_group_id
+
+  db_engine         = "postgres"
+  db_engine_version = "18.3"
+  db_instance_class = "db.t4g.large"
+  db_storage_size   = 60
+  db_storage_type   = "gp3"
+
+  db_port  = 5432
+  multi_az = false
+
+  db_username = "hivewiki"
+  db_password = var.db_password
+  db_name     = "hivewiki"
+
+  backup_retention_period = 3
+  backup_window           = "22:00-23:00"
+  maintenance_window      = "Sun:21:00-Sun:22:00"
+  apply_immediately       = true
+}
+
+################################
+# Elasticache - Serverless     #
+# Using default KMS encrpytion #
+################################
+module "cache" {
+  source = "../../../modules/elasticache-serverless"
+
+  cache_name                = "hivewiki-prod"
+  vpc_id                    = module.vpc.vpc_id
+  subnet_ids                = module.vpc.db_subnet_ids
+  allowed_security_group_id = module.eks_cluster.cluster_security_group_id
+
+  max_cache_usage     = 1
+  max_ecpu_per_second = 1000
+  max_snapshot        = null
+}
