@@ -9,6 +9,10 @@ on:
       - "**/*.tfvars"
       - ".terraform.lock.hcl"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -16,10 +20,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        working_directory:
-          - environments/dev/infra
-          - environments/prod/infra
-          - environments/shared
+        include:
+          - working_directory: environments/dev/infra
+            env: dev
+
+          - working_directory: environments/prod/infra
+            env: prod
+
+          - working_directory: environments/shared
+            env: shared
 
     defaults:
       run:
@@ -44,5 +53,18 @@ jobs:
       - name: OpenTofu init
         run: tofu init -input=false -reconfigure
 
-      - name: OpenTofu plan
+      - name: OpenTofu plan (dev)
+        if: matrix.env == 'dev'
+        env:
+          TF_VAR_db_password: ${{ secrets.DEV_DB_PASSWORD }}
+        run: tofu plan -no-color -input=false
+
+      - name: OpenTofu plan (prod)
+        if: matrix.env == 'prod'
+        env:
+          TF_VAR_db_password: ${{ secrets.PROD_DB_PASSWORD }}
+        run: tofu plan -no-color -input=false
+
+      - name: OpenTofu plan (shared)
+        if: matrix.env == 'shared'
         run: tofu plan -no-color -input=false
