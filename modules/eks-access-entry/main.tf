@@ -1,6 +1,7 @@
 resource "aws_eks_access_entry" "access" {
-  cluster_name  = var.cluster_name
-  principal_arn = var.principal_arn
+  cluster_name      = var.cluster_name
+  principal_arn     = var.principal_arn
+  kubernetes_groups = var.kubernetes_groups
 }
 
 resource "aws_eks_access_policy_association" "access" {

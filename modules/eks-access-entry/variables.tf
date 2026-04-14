@@ -8,6 +8,13 @@ variable "principal_arn" {
   type        = string
 }
 
+variable "kubernetes_groups" {
+  description = "List of Kubernetes groups to assign to the principal"
+  type        = list(string)
+  default     = []
+}
+
+
 variable "eks_access_policy_association" {
   type = map(object({
     policy_arn        = string
