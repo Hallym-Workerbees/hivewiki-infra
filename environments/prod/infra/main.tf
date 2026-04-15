@@ -37,7 +37,7 @@ locals {
       service_account = "aws-node"
     }
     ebs_csi = {
-      role_name       = "${var.cluster_name}-ebs-sci"
+      role_name       = "${var.cluster_name}-ebs-csi"
       policy_arn      = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
       namespace       = "kube-system"
       service_account = "ebs-csi-controller-sa"
