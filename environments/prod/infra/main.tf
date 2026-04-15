@@ -27,6 +27,22 @@ locals {
     "aws-ebs-csi-driver",
     "eks-pod-identity-agent",
   ])
+
+  # Pod identity associations
+  pod_identity_associations = {
+    vpc_cni = {
+      role_name       = "${var.cluster_name}-vpc-cni"
+      policy_arn      = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+      namespace       = "kube-system"
+      service_account = "aws-node"
+    }
+    ebs_csi = {
+      role_name       = "${var.cluster_name}-ebs-csi"
+      policy_arn      = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+      namespace       = "kube-system"
+      service_account = "ebs-csi-controller-sa"
+    }
+  }
 }
 
 #######
@@ -215,8 +231,9 @@ module "eks_access_entry_private" {
   count  = local.eks_private_mode ? 1 : 0
   source = "../../../modules/eks-access-entry"
 
-  cluster_name  = module.eks_cluster.cluster_name
-  principal_arn = module.bastion[0].bastion_role_arn
+  cluster_name      = module.eks_cluster.cluster_name
+  principal_arn     = module.bastion[0].bastion_role_arn
+  kubernetes_groups = []
 
   eks_access_policy_association = {
     clusteradmin = {
@@ -230,8 +247,9 @@ module "eks_access_entry_public" {
   count  = local.eks_private_mode ? 0 : 1
   source = "../../../modules/eks-access-entry"
 
-  cluster_name  = module.eks_cluster.cluster_name
-  principal_arn = data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
+  cluster_name      = module.eks_cluster.cluster_name
+  principal_arn     = data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
+  kubernetes_groups = []
 
   eks_access_policy_association = {
     clusteradmin = {
@@ -284,7 +302,7 @@ module "eks_node_group" {
 ################
 # EKS - Addons #
 ################
-module "eks-addons" {
+module "eks_addons" {
   source   = "../../../modules/eks-addons"
   for_each = local.eks_addons
 
@@ -292,68 +310,18 @@ module "eks-addons" {
   addon_name   = each.value
 }
 
-resource "aws_iam_role" "vpc_cni" {
-  name = "${var.cluster_name}-vpc-cni"
+###################################
+# EKS - Pod identity associations #
+###################################
+module "pod_identity_association" {
+  source   = "../../../modules/eks-pod-identity-association"
+  for_each = local.pod_identity_associations
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "pods.eks.amazonaws.com"
-        }
-        Action = [
-          "sts:AssumeRole",
-          "sts:TagSession"
-        ]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "vpc_cni" {
-  role       = aws_iam_role.vpc_cni.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_eks_pod_identity_association" "vpc_cni" {
   cluster_name    = module.eks_cluster.cluster_name
-  namespace       = "kube-system"
-  service_account = "aws-node"
-  role_arn        = aws_iam_role.vpc_cni.arn
-}
-
-resource "aws_iam_role" "ebs_csi" {
-  name = "${var.cluster_name}-ebs-csi"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "pods.eks.amazonaws.com"
-        }
-        Action = [
-          "sts:AssumeRole",
-          "sts:TagSession"
-        ]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ebs_csi" {
-  role       = aws_iam_role.ebs_csi.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-}
-
-resource "aws_eks_pod_identity_association" "ebs_csi" {
-  cluster_name    = module.eks_cluster.cluster_name
-  namespace       = "kube-system"
-  service_account = "ebs-csi-controller-sa"
-  role_arn        = aws_iam_role.ebs_csi.arn
+  role_name       = each.value.role_name
+  policy_arn      = each.value.policy_arn
+  namespace       = each.value.namespace
+  service_account = each.value.service_account
 }
 
 ################
