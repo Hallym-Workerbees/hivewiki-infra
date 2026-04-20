@@ -179,10 +179,11 @@ resource "helm_release" "cilium" {
 # Helm - Metrics-Server #
 #########################
 resource "helm_release" "metrics-server" {
+  name       = "metrics-server"
   repository = "https://kubernetes-sigs.github.io/metrics-server/"
   chart      = "metrics-server"
-  name       = "metrics-server"
-  namespace  = "default"
+  version    = "3.13.0"
+  namespace  = "metrics-server"
 
   values = [
     yamlencode({
@@ -202,4 +203,54 @@ data "kubectl_file_documents" "argocd" {
 resource "kubectl_manifest" "argocd" {
   for_each  = data.kubectl_file_documents.argocd.manifests
   yaml_body = each.value
+}
+
+####################
+# Helm - Karpenter #
+####################
+resource "helm_release" "karpenter" {
+  name             = "karpenter"
+  repository       = "oci://public.ecr.aws/karpenter"
+  chart            = "karpenter"
+  version          = "1.11.1"
+  namespace        = "karpenter"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      replicas = 1
+
+      settings = {
+        clusterName       = var.cluster_name
+        interruptionQueue = data.terraform_remote_state.dev_infra.outputs.sqs_name
+      }
+
+      controller = {
+        env = [
+          {
+            name  = "AWS_REGION"
+            value = var.aws_region
+          },
+          {
+            name  = "AWS_DEFAULT_REGION"
+            value = var.aws_region
+          }
+        ]
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/karpenter/controller"
+        }
+
+        resources = {
+          requests = {
+            cpu    = "250m"
+            memory = "256Mi"
+          }
+          limits = {
+            cpu    = "250m"
+            memory = "256Mi"
+          }
+        }
+      }
+    })
+  ]
 }

@@ -29,18 +29,62 @@ locals {
   ])
 
   # Pod identity associations
+  karpenter_policies = concat(
+    [
+      {
+        name = "node-lifecycle"
+        arn  = module.karpenter_prerequisite.controller_policy_arns.node_lifecycle
+      },
+      {
+        name = "iam-integration"
+        arn  = module.karpenter_prerequisite.controller_policy_arns.iam_integration
+      },
+      {
+        name = "eks-integration"
+        arn  = module.karpenter_prerequisite.controller_policy_arns.eks_integration
+      },
+      {
+        name = "resource-discovery"
+        arn  = module.karpenter_prerequisite.controller_policy_arns.resource_discovery
+      },
+    ],
+    var.enable_interruption_handling ? [
+      {
+        name = "interruption"
+        arn  = module.karpenter_prerequisite.controller_policy_arns.interruption
+      }
+    ] : []
+  )
   pod_identity_associations = {
     vpc_cni = {
-      role_name       = "${var.cluster_name}-vpc-cni"
-      policy_arn      = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+      role_name = "${var.cluster_name}-vpc-cni"
+      policies = [
+        {
+          name = "amazon-eks-cni-policy"
+          arn  = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+        }
+      ]
       namespace       = "kube-system"
       service_account = "aws-node"
     }
+
     ebs_csi = {
-      role_name       = "${var.cluster_name}-ebs-csi"
-      policy_arn      = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+      role_name = "${var.cluster_name}-ebs-csi"
+      policies = [
+        {
+          name = "amazon-ebs-csi-driver-policy"
+          arn  = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+        }
+      ]
       namespace       = "kube-system"
       service_account = "ebs-csi-controller-sa"
+    }
+
+    karpenter = {
+      role_name       = "${var.cluster_name}-karpenter-controller"
+      policies        = local.karpenter_policies
+      namespace       = "karpenter"
+      service_account = "karpenter"
     }
   }
 }
@@ -294,8 +338,10 @@ module "eks_node_group" {
   # Role policy Attachment
   # check: https://docs.aws.amazon.com/eks/latest/userguide/create-node-role.html
   role_policy_attachment = [
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   ]
 }
 
@@ -319,7 +365,7 @@ module "pod_identity_association" {
 
   cluster_name    = module.eks_cluster.cluster_name
   role_name       = each.value.role_name
-  policy_arn      = each.value.policy_arn
+  policies        = each.value.policies
   namespace       = each.value.namespace
   service_account = each.value.service_account
 }
@@ -385,4 +431,15 @@ module "cache" {
   max_cache_usage     = 1
   max_ecpu_per_second = 1000
   max_snapshot        = null
+}
+
+##########################
+# Karpenter Prerequisite #
+##########################
+module "karpenter_prerequisite" {
+  source = "../../../modules/karpenter-prerequisite"
+
+  cluster_name                 = var.cluster_name
+  aws_region                   = var.aws_region
+  enable_interruption_handling = var.enable_interruption_handling
 }

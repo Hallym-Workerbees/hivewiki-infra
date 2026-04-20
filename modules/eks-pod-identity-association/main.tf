@@ -19,8 +19,12 @@ resource "aws_iam_role" "pod" {
 }
 
 resource "aws_iam_role_policy_attachment" "pod" {
+  for_each = {
+    for policy in var.policies : policy.name => policy
+  }
+
   role       = aws_iam_role.pod.name
-  policy_arn = var.policy_arn
+  policy_arn = each.value.arn
 }
 
 resource "aws_eks_pod_identity_association" "association" {

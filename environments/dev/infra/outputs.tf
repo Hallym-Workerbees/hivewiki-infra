@@ -25,3 +25,7 @@ output "cache_reader_endpoint" {
 output "cache_port" {
   value = module.cache.cache_port
 }
+
+output "interruption_handling_queue" {
+  value = module.karpenter_prerequisite.sqs_name
+}
