@@ -193,15 +193,36 @@ resource "helm_release" "metrics-server" {
   ]
 }
 
-####################
-# Kubectl - ArgoCD #
-####################
-data "kubectl_file_documents" "argocd" {
-  content = file("${path.module}/../../../third-party/argocd/install.yaml")
-}
-resource "kubectl_manifest" "argocd" {
-  for_each  = data.kubectl_file_documents.argocd.manifests
-  yaml_body = each.value
+#################
+# Helm - ArgoCD #
+#################
+resource "helm_release" "argocd" {
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  version          = "3.9.0"
+  namespace        = "argocd"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      global = {
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd"
+        }
+      }
+      dex = {
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ghcr/dexidp/dex"
+        }
+      }
+      redis = {
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/docker-hub/library/redis"
+        }
+      }
+    })
+  ]
 }
 
 ####################
