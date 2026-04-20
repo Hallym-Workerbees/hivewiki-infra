@@ -25,10 +25,6 @@ resource "aws_iam_role" "karpenter_node" {
     ]
   })
   path = "/"
-
-  tags = {
-    ManagedBy = "Karpenter"
-  }
 }
 
 resource "aws_iam_role_policy_attachment" "karpenter_node" {
