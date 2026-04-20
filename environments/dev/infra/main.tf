@@ -20,13 +20,33 @@ locals {
   eks_private_mode = false
 
   # EKS Addon list
-  eks_addons = toset([
-    "coredns",
-    "kube-proxy",
-    "vpc-cni",
-    "aws-ebs-csi-driver",
-    "eks-pod-identity-agent",
-  ])
+  eks_addons = {
+    coredns = {
+      name                 = "coredns"
+      configuration_values = ""
+    },
+    kube_proxy = {
+      name                 = "kube-proxy"
+      configuration_values = ""
+    },
+    vpc_cni = {
+      name = "vpc-cni"
+      configuration_values = jsonencode({
+        env = {
+          ENABLE_PREFIX_DELEGATION = "true"
+          WARM_PREFIX_TARGET       = "1"
+        }
+      })
+    },
+    aws_ebs_csi_driver = {
+      name                 = "aws-ebs-csi-driver"
+      configuration_values = ""
+    },
+    eks_pod_identity_agent = {
+      name                 = "eks-pod-identity-agent"
+      configuration_values = ""
+    }
+  }
 
   # Pod identity associations
   karpenter_policies = concat(
@@ -354,8 +374,9 @@ module "eks_addons" {
   source   = "../../../modules/eks-addons"
   for_each = local.eks_addons
 
-  cluster_name = module.eks_cluster.cluster_name
-  addon_name   = each.value
+  cluster_name         = module.eks_cluster.cluster_name
+  addon_name           = each.value.name
+  configuration_values = each.value.configuration_values
 }
 
 ###################################
