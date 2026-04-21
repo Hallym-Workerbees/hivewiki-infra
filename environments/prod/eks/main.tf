@@ -266,7 +266,7 @@ resource "helm_release" "karpenter" {
 
       settings = {
         clusterName       = var.cluster_name
-        interruptionQueue = data.terraform_remote_state.prod_infra.outputs.sqs_name
+        interruptionQueue = data.terraform_remote_state.prod_infra.outputs.interruption_handling_queue
       }
 
       controller = {
