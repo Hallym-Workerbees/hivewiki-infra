@@ -12,3 +12,8 @@ variable "enable_interruption_handling" {
   description = "Whether to enable interruption handling"
   type        = bool
 }
+
+variable "cluster_security_group_id" {
+  description = "Cluster SG ID"
+  type        = string
+}

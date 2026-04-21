@@ -303,6 +303,14 @@ module "eks_access_entry_public" {
   }
 }
 
+module "eks_access_entry_karpenter_node" {
+  source = "../../../modules/eks-access-entry"
+
+  cluster_name  = module.eks_cluster.cluster_name
+  principal_arn = module.karpenter_prerequisite.node_role_arn
+  type          = "EC2_LINUX"
+}
+
 #####################################
 # EKS - Node Group                  #
 # Desired Node group size is ignored #
@@ -441,5 +449,6 @@ module "karpenter_prerequisite" {
 
   cluster_name                 = var.cluster_name
   aws_region                   = var.aws_region
+  cluster_security_group_id    = module.eks_cluster.cluster_security_group_id
   enable_interruption_handling = var.enable_interruption_handling
 }

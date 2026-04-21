@@ -1,3 +1,23 @@
+locals {
+  karpenter_nodepool_manifest = templatefile(
+    "${path.module}/karpenter.yaml.tftpl",
+    {
+      cluster_name             = var.cluster_name
+      nodepool_name            = "default"
+      nodeclass_name           = "default"
+      capacity_type            = "spot" # or on-demand
+      node_role_name           = data.terraform_remote_state.prod_infra.outputs.karpenter_node_role_name
+      instance_categories_json = jsonencode(["c", "m", "r"])
+      instance_generation_gt   = "2"
+      expire_after             = "720h"
+      cpu_limit                = "32"
+      consolidation_policy     = "WhenEmptyOrUnderutilized"
+      consolidate_after        = "3m"
+      ami_alias                = "al2023@latest"
+    }
+  )
+}
+
 ############################
 # Remote State from shared #
 ############################
@@ -95,6 +115,10 @@ resource "helm_release" "cilium" {
 
   values = [
     yamlencode({
+      envoy = {
+        enabled = false
+      }
+      l7Proxy = false
       image = {
         repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/cilium"
       }
@@ -273,4 +297,18 @@ resource "helm_release" "karpenter" {
       }
     })
   ]
+}
+
+###############################################
+# Kubectl - Karpenter NodePool + EC2NodeClass #
+###############################################
+data "kubectl_file_documents" "karpenter_nodepool" {
+  content = local.karpenter_nodepool_manifest
+}
+
+resource "kubectl_manifest" "karpenter_nodepool" {
+  for_each  = data.kubectl_file_documents.karpenter_nodepool.manifests
+  yaml_body = each.value
+
+  depends_on = [helm_release.karpenter]
 }

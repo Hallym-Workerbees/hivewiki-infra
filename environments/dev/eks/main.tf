@@ -5,8 +5,9 @@ locals {
       cluster_name             = var.cluster_name
       nodepool_name            = "default"
       nodeclass_name           = "default"
-      capacity_type            = "on-demand"
-      instance_categories_json = jsonencode(["c", "m", "r"])
+      capacity_type            = "spot" # or on-demand
+      node_role_name           = data.terraform_remote_state.dev_infra.outputs.karpenter_node_role_name
+      instance_categories_json = jsonencode(["t", "c", "m", "r"])
       instance_generation_gt   = "2"
       expire_after             = "720h"
       cpu_limit                = "32"
@@ -114,6 +115,11 @@ resource "helm_release" "cilium" {
 
   values = [
     yamlencode({
+      envoy = {
+        enabled = false
+      }
+      l7Proxy = false
+
       image = {
         repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/cilium"
       }

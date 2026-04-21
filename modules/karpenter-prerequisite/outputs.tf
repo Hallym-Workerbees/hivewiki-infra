@@ -11,3 +11,11 @@ output "controller_policy_arns" {
 output "sqs_name" {
   value = var.enable_interruption_handling ? aws_sqs_queue.karpenter_interruption[0].name : null
 }
+
+output "node_role_arn" {
+  value = aws_iam_role.karpenter_node.arn
+}
+
+output "node_role_name" {
+  value = aws_iam_role.karpenter_node.name
+}

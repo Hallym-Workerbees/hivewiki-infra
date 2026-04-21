@@ -29,3 +29,7 @@ output "cache_port" {
 output "interruption_handling_queue" {
   value = module.karpenter_prerequisite.sqs_name
 }
+
+output "karpenter_node_role_name" {
+  value = module.karpenter_prerequisite.node_role_name
+}

@@ -660,3 +660,9 @@ resource "aws_cloudwatch_event_target" "karpenter_state_change" {
   target_id = "KarpenterInterruptionQueue"
   arn       = aws_sqs_queue.karpenter_interruption[0].arn
 }
+
+resource "aws_ec2_tag" "cluster_primary_sg_karpenter_discovery" {
+  resource_id = var.cluster_security_group_id
+  key         = "karpenter.sh/discovery"
+  value       = var.cluster_name
+}
