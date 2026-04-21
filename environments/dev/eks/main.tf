@@ -1,3 +1,23 @@
+locals {
+  karpenter_nodepool_manifest = templatefile(
+    "${path.module}/karpenter.yaml.tftpl",
+    {
+      cluster_name             = var.cluster_name
+      nodepool_name            = "default"
+      nodeclass_name           = "default"
+      capacity_type            = "spot" # or on-demand
+      node_role_name           = data.terraform_remote_state.dev_infra.outputs.karpenter_node_role_name
+      instance_categories_json = jsonencode(["t", "c", "m", "r"])
+      instance_generation_gt   = "2"
+      expire_after             = "720h"
+      cpu_limit                = "32"
+      consolidation_policy     = "WhenEmptyOrUnderutilized"
+      consolidate_after        = "3m"
+      ami_alias                = "al2023@latest"
+    }
+  )
+}
+
 ############################
 # Remote State from shared #
 ############################
@@ -95,6 +115,11 @@ resource "helm_release" "cilium" {
 
   values = [
     yamlencode({
+      envoy = {
+        enabled = false
+      }
+      l7Proxy = false
+
       image = {
         repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/cilium"
       }
@@ -178,11 +203,13 @@ resource "helm_release" "cilium" {
 #########################
 # Helm - Metrics-Server #
 #########################
-resource "helm_release" "metrics-server" {
-  repository = "https://kubernetes-sigs.github.io/metrics-server/"
-  chart      = "metrics-server"
-  name       = "metrics-server"
-  namespace  = "default"
+resource "helm_release" "metrics_server" {
+  name             = "metrics-server"
+  repository       = "https://kubernetes-sigs.github.io/metrics-server"
+  chart            = "metrics-server"
+  version          = "3.13.0"
+  namespace        = "metrics-server"
+  create_namespace = true
 
   values = [
     yamlencode({
@@ -193,13 +220,99 @@ resource "helm_release" "metrics-server" {
   ]
 }
 
-####################
-# Kubectl - ArgoCD #
-####################
-data "kubectl_file_documents" "argocd" {
-  content = file("${path.module}/../../../third-party/argocd/install.yaml")
+#################
+# Helm - ArgoCD #
+#################
+resource "helm_release" "argocd" {
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  version          = "3.9.0"
+  namespace        = "argocd"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      global = {
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd"
+          tag        = "v3.1.14"
+        }
+      }
+      dex = {
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ghcr/dexidp/dex"
+        }
+      }
+      redis = {
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/docker-hub/library/redis"
+        }
+      }
+    })
+  ]
 }
-resource "kubectl_manifest" "argocd" {
-  for_each  = data.kubectl_file_documents.argocd.manifests
+
+####################
+# Helm - Karpenter #
+####################
+resource "helm_release" "karpenter" {
+  name             = "karpenter"
+  repository       = "oci://public.ecr.aws/karpenter"
+  chart            = "karpenter"
+  version          = "1.11.1"
+  namespace        = "karpenter"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      replicas = 1
+
+      settings = {
+        clusterName       = var.cluster_name
+        interruptionQueue = data.terraform_remote_state.dev_infra.outputs.interruption_handling_queue
+      }
+
+      controller = {
+        env = [
+          {
+            name  = "AWS_REGION"
+            value = var.aws_region
+          },
+          {
+            name  = "AWS_DEFAULT_REGION"
+            value = var.aws_region
+          }
+        ]
+        image = {
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/karpenter/controller"
+        }
+
+        resources = {
+          requests = {
+            cpu    = "250m"
+            memory = "256Mi"
+          }
+          limits = {
+            cpu    = "250m"
+            memory = "256Mi"
+          }
+        }
+      }
+    })
+  ]
+}
+
+###############################################
+# Kubectl - Karpenter NodePool + EC2NodeClass #
+###############################################
+data "kubectl_file_documents" "karpenter_nodepool" {
+  content = local.karpenter_nodepool_manifest
+}
+
+resource "kubectl_manifest" "karpenter_nodepool" {
+  for_each  = data.kubectl_file_documents.karpenter_nodepool.manifests
   yaml_body = each.value
+
+  depends_on = [helm_release.karpenter]
 }

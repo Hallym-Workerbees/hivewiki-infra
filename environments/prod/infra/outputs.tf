@@ -25,3 +25,11 @@ output "cache_reader_endpoint" {
 output "cache_port" {
   value = module.cache.cache_port
 }
+
+output "interruption_handling_queue" {
+  value = var.enable_interruption_handling ? module.karpenter_prerequisite.sqs_name : ""
+}
+
+output "karpenter_node_role_name" {
+  value = module.karpenter_prerequisite.node_role_name
+}

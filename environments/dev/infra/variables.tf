@@ -13,3 +13,8 @@ variable "db_password" {
   type      = string
   sensitive = true
 }
+
+variable "enable_interruption_handling" {
+  type    = bool
+  default = true
+}

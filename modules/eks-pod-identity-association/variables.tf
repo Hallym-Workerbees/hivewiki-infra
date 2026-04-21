@@ -8,9 +8,13 @@ variable "role_name" {
   type        = string
 }
 
-variable "policy_arn" {
-  description = "IAM policy arn"
-  type        = string
+variable "policies" {
+  description = "IAM Policies"
+  type = list(object({
+    name = string
+    arn  = string
+  }))
+  default = []
 }
 
 variable "namespace" {

@@ -14,6 +14,11 @@ variable "kubernetes_groups" {
   default     = []
 }
 
+variable "type" {
+  description = "Access Entry Type"
+  type        = string
+  default     = "STANDARD"
+}
 
 variable "eks_access_policy_association" {
   type = map(object({
