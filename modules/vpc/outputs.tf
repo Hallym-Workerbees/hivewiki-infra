@@ -3,6 +3,11 @@ output "vpc_id" {
   value       = aws_vpc.vpc.id
 }
 
+output "vpc_arn" {
+  description = "VPC ARN"
+  value       = aws_vpc.vpc.arn
+}
+
 output "public_subnet_ids" {
   value = values(aws_subnet.public)[*].id
 }

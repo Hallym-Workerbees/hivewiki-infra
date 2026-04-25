@@ -316,3 +316,54 @@ resource "kubectl_manifest" "karpenter_nodepool" {
 
   depends_on = [helm_release.karpenter]
 }
+
+###################################
+# Helm - Load Balancer Controller #
+###################################
+resource "helm_release" "lbc" {
+  name             = "aws-load-balancer-controller"
+  repository       = "https://aws.github.io/eks-charts"
+  chart            = "aws-load-balancer-controller"
+  version          = "1.14.0"
+  namespace        = "kube-system"
+  create_namespace = true
+  values = [
+    yamlencode({
+      clusterName = var.cluster_name
+      region      = var.aws_region
+      vpcId       = data.terraform_remote_state.dev_infra.outputs.vpc_id
+
+      image = {
+        repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/eks/aws-load-balancer-controller"
+      }
+      serviceAccount = {
+        create = true
+        name   = "aws-load-balancer-controller"
+      }
+      controllerConfig = {
+        featureGates = {
+          ALBGatewayAPI = true
+        }
+      }
+    })
+  ]
+}
+
+#######################################
+# Kubectl - GatewayClass(Gateway API) #
+#######################################
+resource "kubectl_manifest" "gateway_class" {
+  yaml_body = yamlencode({
+    apiVersion = "gateway.networking.k8s.io/v1beta1"
+    kind       = "GatewayClass"
+    metadata = {
+      name = "aws-alb-gateway-class"
+    }
+    spec = {
+      controllerName = "gateway.k8s.aws/alb"
+    }
+  })
+  depends_on = [
+    kubectl_manifest.gateway_api
+  ]
+}

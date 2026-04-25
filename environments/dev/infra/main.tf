@@ -106,6 +106,15 @@ locals {
       namespace       = "karpenter"
       service_account = "karpenter"
     }
+    load-balancer-controller = {
+      role_name = "${var.cluster_name}-load-balancer-controller"
+      policies = [{
+        name = "${var.cluster_name}-load-balancer-controller"
+        arn  = aws_iam_policy.lbc.arn
+      }]
+      namespace       = "kube-system"
+      service_account = "aws-load-balancer-controller"
+    }
   }
 }
 
@@ -352,7 +361,7 @@ module "eks_node_group" {
 
   # We intentionally use least node group scale, because we use karpenter + spot to reduce costs
   scaling = {
-    desired_size = 0
+    desired_size = 1
     min_size     = 0
     max_size     = 1
   }
@@ -475,4 +484,71 @@ module "karpenter_prerequisite" {
   aws_region                   = var.aws_region
   cluster_security_group_id    = module.eks_cluster.cluster_security_group_id
   enable_interruption_handling = var.enable_interruption_handling
+}
+
+####################################
+# IAM for Load Balancer Controller #
+####################################
+data "aws_iam_policy_document" "lbc" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "ArnEquals"
+      variable = "ec2:Vpc"
+      values = [
+        module.vpc.vpc_arn
+      ]
+    }
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeInstances",
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
+      "ec2:CreateTags"
+    ]
+    resources = ["*"]
+  }
+  statement {
+    effect = "Allow"
+    actions = [
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:DescribeLoadBalancerAttributes",
+      "elasticloadbalancing:DescribeListeners",
+      "elasticloadbalancing:DescribeListenerAttributes",
+      "elasticloadbalancing:DescribeListenerCertificates",
+      "elasticloadbalancing:DescribeSSLPolicies",
+      "elasticloadbalancing:DescribeRules",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeTargetHealth",
+      "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:CreateTargetGroup",
+      "elasticloadbalancing:AddTags",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:CreateListener",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:DeleteTargetGroup",
+      "elasticloadbalancing:RegisterTargets",
+      "shield:GetSubscriptionState"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "lbc" {
+  name   = "${var.cluster_name}-load-balancer-controller"
+  path   = "/"
+  policy = data.aws_iam_policy_document.lbc.json
 }
