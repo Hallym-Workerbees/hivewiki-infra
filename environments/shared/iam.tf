@@ -104,3 +104,30 @@ resource "aws_iam_group_policy" "assume_eks_admin_role" {
   group  = aws_iam_group.workerbees_eks_admin.name
   policy = data.aws_iam_policy_document.user_assume_role.json
 }
+
+data "aws_iam_policy_document" "access_key" {
+  statement {
+    sid    = "AccessPersonalAccessKey"
+    effect = "Allow"
+
+    actions = [
+      "iam:ListAccessKeys",
+      "iam:GetAccessKeyLastUsed",
+      "iam:CreateAccessKey",
+      "iam:ChangePassword",
+      "iam:DeleteAccessKey",
+      "iam:UpdateAccessKey",
+      "iam:TagUser",
+    ]
+
+    resources = [
+      "arn:aws:iam::*:user/$${aws:username}"
+    ]
+  }
+}
+
+resource "aws_iam_group_policy" "access_key" {
+  name   = "workerbees-create-access-key"
+  group  = aws_iam_group.workerbees_aws_readonly.name
+  policy = data.aws_iam_policy_document.access_key.json
+}
