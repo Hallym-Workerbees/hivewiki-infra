@@ -356,7 +356,7 @@ module "eks_node_group" {
   subnet_ids     = module.vpc.private_subnet_ids
   instance_types = ["t4g.medium"]
 
-  capacity_type = "SPOT"
+  capacity_type = "ON_DEMAND"
   disk_size     = 20
 
   # We intentionally use least node group scale, because we use karpenter + spot to reduce costs

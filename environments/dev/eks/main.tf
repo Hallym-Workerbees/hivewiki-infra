@@ -57,8 +57,6 @@ provider "kubectl" {
       var.cluster_name,
       "--region",
       var.aws_region,
-      "--role-arn",
-      data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
     ]
     command = "aws"
   }
@@ -80,8 +78,6 @@ provider "helm" {
         var.cluster_name,
         "--region",
         var.aws_region,
-        "--role-arn",
-        data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
       ]
       command = "aws"
     }
@@ -227,7 +223,7 @@ resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
-  version          = "3.9.0"
+  version          = "9.5.7"
   namespace        = "argocd"
   create_namespace = true
 
@@ -236,7 +232,6 @@ resource "helm_release" "argocd" {
       global = {
         image = {
           repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd"
-          tag        = "v3.1.14"
         }
       }
       dex = {
@@ -246,7 +241,7 @@ resource "helm_release" "argocd" {
       }
       redis = {
         image = {
-          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/docker-hub/library/redis"
+          repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/docker/library/redis"
         }
       }
     })
