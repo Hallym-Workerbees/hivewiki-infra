@@ -292,7 +292,7 @@ module "eks_access_entry_public" {
   source = "../../../modules/eks-access-entry"
 
   cluster_name      = module.eks_cluster.cluster_name
-  principal_arn     = data.terraform_remote_state.shared.outputs.eks_fullaccess_role_arn
+  principal_arn     = data.terraform_remote_state.shared.outputs.eks_admin_sso_principal_arn
   kubernetes_groups = []
 
   eks_access_policy_association = {
