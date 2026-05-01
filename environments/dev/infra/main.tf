@@ -1,3 +1,13 @@
+###########################
+# Load availability zones #
+###########################
+data "aws_availability_zones" "seoul" {
+  filter {
+    name   = "opt-in-status"
+    values = ["opt-in-not-required"]
+  }
+}
+
 ############################
 # Remote State from shared #
 ############################
@@ -15,6 +25,8 @@ data "terraform_remote_state" "shared" {
 ##########
 locals {
   vpc_cidr = "10.1.0.0/16"
+  az_a     = data.aws_availability_zones.seoul.names[0]
+  az_c     = data.aws_availability_zones.seoul.names[2]
 
   # Enable/disable EKS private access
   eks_private_mode = false
@@ -126,8 +138,8 @@ module "vpc" {
   cluster_name = var.cluster_name
   cidr_block   = local.vpc_cidr
   azs = {
-    a = "${var.aws_region}a"
-    c = "${var.aws_region}c"
+    a = local.az_a
+    c = local.az_c
   }
   public_subnets = {
     a = {
