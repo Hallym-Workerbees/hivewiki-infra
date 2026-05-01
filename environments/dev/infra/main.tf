@@ -6,7 +6,7 @@ data "terraform_remote_state" "shared" {
   config = {
     bucket = "hivewiki-infra-state-bucket"
     key    = "shared/terraform.tfstate"
-    region = "ap-northeast-2"
+    region = var.aws_region
   }
 }
 
@@ -126,8 +126,8 @@ module "vpc" {
   cluster_name = var.cluster_name
   cidr_block   = local.vpc_cidr
   azs = {
-    a = "ap-northeast-2a"
-    c = "ap-northeast-2c"
+    a = "${var.aws_region}a"
+    c = "${var.aws_region}c"
   }
   public_subnets = {
     a = {
@@ -188,54 +188,54 @@ module "vpc_endpoints" {
   vpc_id = module.vpc.vpc_id
   endpoints = {
     ec2 = {
-      service_name        = "com.amazonaws.ap-northeast-2.ec2"
+      service_name        = "com.amazonaws.${var.aws_region}.ec2"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
     ecr_api = {
-      service_name        = "com.amazonaws.ap-northeast-2.ecr.api"
+      service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
     ecr_dkr = {
-      service_name        = "com.amazonaws.ap-northeast-2.ecr.dkr"
+      service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
     s3 = {
-      service_name    = "com.amazonaws.ap-northeast-2.s3"
+      service_name    = "com.amazonaws.${var.aws_region}.s3"
       endpoint_type   = "Gateway"
       route_table_ids = [module.vpc.private_route_table_id]
     }
     cloudwatch_logs = {
-      service_name        = "com.amazonaws.ap-northeast-2.logs"
+      service_name        = "com.amazonaws.${var.aws_region}.logs"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
     sts = {
-      service_name        = "com.amazonaws.ap-northeast-2.sts"
+      service_name        = "com.amazonaws.${var.aws_region}.sts"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
     eks_auth = {
-      service_name        = "com.amazonaws.ap-northeast-2.eks-auth"
+      service_name        = "com.amazonaws.${var.aws_region}.eks-auth"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
       security_group_ids  = [aws_security_group.vpce.id]
     }
     eks = {
-      service_name        = "com.amazonaws.ap-northeast-2.eks"
+      service_name        = "com.amazonaws.${var.aws_region}.eks"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
