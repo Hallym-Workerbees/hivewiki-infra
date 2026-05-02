@@ -366,11 +366,6 @@ resource "aws_sfn_state_machine" "hibernate" {
               Name  = "NATGW_AZS_JSON"
               Value = "[]"
               Type  = "PLAINTEXT"
-            },
-            {
-              Name  = "VPC_ENDPOINTS_JSON"
-              Value = "{}"
-              Type  = "PLAINTEXT"
             }
           ]
         }
