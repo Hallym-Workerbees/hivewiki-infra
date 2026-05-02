@@ -21,6 +21,11 @@ phases:
       - cd "$CODEBUILD_SRC_DIR/$TF_ROOT"
       - pwd
       - ls -la
+      - echo "Packaging flush_elasticache Lambda"
+      - rm -rf lambda/flush_elasticache/package
+      - mkdir -p lambda/flush_elasticache/package
+      - python3 -m pip install -r lambda/flush_elasticache/requirements.txt -t lambda/flush_elasticache/package
+      - cp lambda/flush_elasticache/main.py lambda/flush_elasticache/package/
       - echo "Preparing NAT Gateway hibernate override"
       - |
         cat > hibernate.auto.tfvars.json <<EOF
