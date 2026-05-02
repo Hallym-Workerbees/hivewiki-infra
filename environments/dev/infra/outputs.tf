@@ -7,7 +7,7 @@ output "eks_ca_certificate" {
 }
 
 output "vpc_id" {
-  value = module.vpc.vpc_id
+  value = data.terraform_remote_state.vpc.outputs.vpc_id
 }
 
 output "bastion_id" {

@@ -1,13 +1,3 @@
-###########################
-# Load availability zones #
-###########################
-data "aws_availability_zones" "seoul" {
-  filter {
-    name   = "opt-in-status"
-    values = ["opt-in-not-required"]
-  }
-}
-
 ############################
 # Remote State from shared #
 ############################
@@ -20,13 +10,20 @@ data "terraform_remote_state" "shared" {
   }
 }
 
+data "terraform_remote_state" "vpc" {
+  backend = "s3"
+  config = {
+    bucket = "hivewiki-infra-state-bucket"
+    key    = "dev/vpc/terraform.tfstate"
+    region = var.aws_region
+  }
+}
+
 ##########
 # locals #
 ##########
 locals {
   vpc_cidr = "10.1.0.0/16"
-  az_a     = data.aws_availability_zones.seoul.names[0]
-  az_c     = data.aws_availability_zones.seoul.names[2]
 
   # Enable/disable EKS private access
   eks_private_mode = false
@@ -130,139 +127,6 @@ locals {
   }
 }
 
-#######
-# VPC #
-#######
-module "vpc" {
-  source       = "../../../modules/vpc"
-  cluster_name = var.cluster_name
-  cidr_block   = local.vpc_cidr
-  azs = {
-    a = local.az_a
-    c = local.az_c
-  }
-  public_subnets = {
-    a = {
-      cidr = "10.1.0.0/24"
-      az   = "a"
-    }
-    c = {
-      cidr = "10.1.1.0/24"
-      az   = "c"
-    }
-  }
-  private_subnets = {
-    a = {
-      cidr = "10.1.100.0/24"
-      az   = "a"
-    }
-    c = {
-      cidr = "10.1.101.0/24"
-      az   = "c"
-    }
-  }
-  db_subnets = {
-    a = {
-      cidr = "10.1.200.0/24"
-      az   = "a"
-    }
-    c = {
-      cidr = "10.1.201.0/24"
-      az   = "c"
-    }
-  }
-  # When reducing the number of NAT gateway AZs,
-  # it is safer to first set `natgw_az` to an empty list and apply,
-  # then recreate the NAT gateway with the desired AZs.
-  natgw_az = var.natgw_azs
-}
-
-#################
-# VPC Endpoints #
-#################
-resource "aws_security_group" "vpce" {
-  vpc_id      = module.vpc.vpc_id
-  name        = "allow-private-subnets"
-  description = "Allow traffic from private subnets"
-}
-
-resource "aws_vpc_security_group_ingress_rule" "allow_vpc" {
-  security_group_id = aws_security_group.vpce.id
-
-  cidr_ipv4   = "10.1.0.0/16"
-  ip_protocol = "tcp"
-  from_port   = 443
-  to_port     = 443
-}
-
-module "vpc_endpoints" {
-  source = "../../../modules/vpc-endpoint"
-  vpc_id = module.vpc.vpc_id
-  endpoints = {
-    ec2 = {
-      service_name        = "com.amazonaws.${var.aws_region}.ec2"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-    ecr_api = {
-      service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-    ecr_dkr = {
-      service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-    s3 = {
-      service_name    = "com.amazonaws.${var.aws_region}.s3"
-      endpoint_type   = "Gateway"
-      route_table_ids = [module.vpc.private_route_table_id]
-    }
-    cloudwatch_logs = {
-      service_name        = "com.amazonaws.${var.aws_region}.logs"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-    sts = {
-      service_name        = "com.amazonaws.${var.aws_region}.sts"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-    eks_auth = {
-      service_name        = "com.amazonaws.${var.aws_region}.eks-auth"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-    eks = {
-      service_name        = "com.amazonaws.${var.aws_region}.eks"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-    sqs = {
-      service_name        = "com.amazonaws.${var.aws_region}.sqs"
-      endpoint_type       = "Interface"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
-    }
-  }
-}
-
 ###################
 # S3 + Cloudfront #
 ###################
@@ -308,9 +172,9 @@ module "eks_cluster" {
 
   cluster_name       = var.cluster_name
   kubernetes_version = "1.35"
-  vpc_id             = module.vpc.vpc_id
+  vpc_id             = data.terraform_remote_state.vpc.outputs.vpc_id
   vpc_cidr           = local.vpc_cidr
-  subnet_ids         = module.vpc.private_subnet_ids
+  subnet_ids         = data.terraform_remote_state.vpc.outputs.private_subnet_ids
   private_mode       = local.eks_private_mode
 
   enabled_cluster_log_types = []
@@ -372,7 +236,7 @@ module "eks_node_group" {
   node_group_name = "${var.cluster_name}-ng"
 
   ami_type       = "AL2023_ARM_64_STANDARD"
-  subnet_ids     = module.vpc.private_subnet_ids
+  subnet_ids     = data.terraform_remote_state.vpc.outputs.private_subnet_ids
   instance_types = ["t4g.medium"]
 
   capacity_type = "ON_DEMAND"
@@ -437,8 +301,8 @@ module "bastion" {
   source = "../../../modules/ec2-ssm-bastion"
 
   name                        = "bastion-dev"
-  vpc_id                      = module.vpc.vpc_id
-  subnet_id                   = module.vpc.public_subnet_ids[0]
+  vpc_id                      = data.terraform_remote_state.vpc.outputs.vpc_id
+  subnet_id                   = data.terraform_remote_state.vpc.outputs.public_subnet_ids[0]
   instance_type               = "t4g.nano"
   eks_arn                     = module.eks_cluster.arn
   associate_public_ip_address = true
@@ -453,8 +317,8 @@ module "rds" {
 
   db_identifier = "hivewiki-dev"
 
-  vpc_id                    = module.vpc.vpc_id
-  subnet_ids                = module.vpc.db_subnet_ids
+  vpc_id                    = data.terraform_remote_state.vpc.outputs.vpc_id
+  subnet_ids                = data.terraform_remote_state.vpc.outputs.db_subnet_ids
   allowed_security_group_id = module.eks_cluster.cluster_security_group_id
 
   db_engine         = "postgres"
@@ -484,8 +348,8 @@ module "cache" {
   source = "../../../modules/elasticache-serverless"
 
   cache_name                = "hivewiki-dev"
-  vpc_id                    = module.vpc.vpc_id
-  subnet_ids                = module.vpc.db_subnet_ids
+  vpc_id                    = data.terraform_remote_state.vpc.outputs.vpc_id
+  subnet_ids                = data.terraform_remote_state.vpc.outputs.db_subnet_ids
   allowed_security_group_id = module.eks_cluster.cluster_security_group_id
 
   max_cache_usage     = 1
@@ -520,7 +384,7 @@ data "aws_iam_policy_document" "lbc" {
       test     = "ArnEquals"
       variable = "ec2:Vpc"
       values = [
-        module.vpc.vpc_arn
+        data.terraform_remote_state.vpc.outputs.vpc_arn
       ]
     }
   }
