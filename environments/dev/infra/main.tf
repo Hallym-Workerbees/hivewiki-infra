@@ -174,7 +174,7 @@ module "vpc" {
   # When reducing the number of NAT gateway AZs,
   # it is safer to first set `natgw_az` to an empty list and apply,
   # then recreate the NAT gateway with the desired AZs.
-  natgw_az = ["a"]
+  natgw_az = var.natgw_azs
 }
 
 #################
