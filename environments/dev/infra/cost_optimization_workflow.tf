@@ -514,7 +514,7 @@ resource "aws_lambda_function" "flush_elasticache" {
   runtime          = "python3.12"
 
   vpc_config {
-    subnet_ids         = module.vpc.private_subnet_ids
+    subnet_ids         = data.terraform_remote_state.vpc.outputs.private_subnet_ids
     security_group_ids = [aws_security_group.flush_elasticache_lambda.id]
   }
   environment {
@@ -537,7 +537,7 @@ resource "aws_iam_role_policy_attachment" "flush_elasticache_vpc_access" {
 resource "aws_security_group" "flush_elasticache_lambda" {
   name        = "${var.cluster_name}-flush-elasticache-lambda"
   description = "Security group for Lambda flushing ElastiCache Serverless"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
 
   tags = {
     Name = "${var.cluster_name}-flush-elasticache-lambda"
@@ -602,7 +602,7 @@ resource "aws_codebuild_project" "hibernate_network" {
   source {
     type      = "GITHUB"
     location  = var.terraform_repo_url
-    buildspec = "environments/dev/infra/buildspecs/hibernate-network.yml"
+    buildspec = "environments/dev/vpc/buildspecs/hibernate-network.yml"
   }
 
   logs_config {
@@ -614,19 +614,38 @@ resource "aws_codebuild_project" "hibernate_network" {
 
 data "aws_iam_policy_document" "hibernate_network_codebuild_permissions" {
   statement {
-    sid    = "AllowTerraformStateAccess"
+    sid    = "AllowTerraformStateBucketList"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket"
+    ]
+
+    resources = [data.terraform_remote_state.shared.outputs.state_bucket_arn]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "dev/vpc/terraform.tfstate",
+        "dev/vpc/terraform.tfstate.tflock"
+      ]
+    }
+  }
+
+  statement {
+    sid    = "AllowTerraformVpcStateObjectAccess"
     effect = "Allow"
 
     actions = [
       "s3:GetObject",
       "s3:PutObject",
-      "s3:DeleteObject",
-      "s3:ListBucket"
+      "s3:DeleteObject"
     ]
 
     resources = [
-      data.terraform_remote_state.shared.outputs.state_bucket_arn,
-      "${data.terraform_remote_state.shared.outputs.state_bucket_arn}/*"
+      "${data.terraform_remote_state.shared.outputs.state_bucket_arn}/dev/vpc/terraform.tfstate",
+      "${data.terraform_remote_state.shared.outputs.state_bucket_arn}/dev/vpc/terraform.tfstate.tflock"
     ]
   }
 

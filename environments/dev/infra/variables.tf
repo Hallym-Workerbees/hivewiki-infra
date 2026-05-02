@@ -19,11 +19,6 @@ variable "enable_interruption_handling" {
   default = true
 }
 
-variable "natgw_azs" {
-  type    = list(string)
-  default = ["a"]
-}
-
 variable "terraform_repo_url" {
   type    = string
   default = "https://github.com/Hallym-Workerbees/hivewiki-infra"
