@@ -655,6 +655,8 @@ data "aws_iam_policy_document" "hibernate_network_codebuild_permissions" {
 
     actions = [
       "ec2:Describe*",
+      "ec2:AllocateAddress",
+      "ec2:AssociateAddress",
       "ec2:CreateNatGateway",
       "ec2:DeleteNatGateway",
       "ec2:CreateVpcEndpoint",
@@ -664,8 +666,10 @@ data "aws_iam_policy_document" "hibernate_network_codebuild_permissions" {
       "ec2:ReplaceRoute",
       "ec2:DeleteRoute",
       "ec2:AssociateRouteTable",
+      "ec2:DisassociateAddress",
       "ec2:DisassociateRouteTable",
       "ec2:ModifySubnetAttribute",
+      "ec2:ReleaseAddress",
       "ec2:CreateTags",
       "ec2:DeleteTags"
     ]
