@@ -50,8 +50,6 @@ def parse_stepfunctions_time(value: str) -> datetime | None:
         return None
 
     try:
-        # Step Functions timestamp example:
-        # 2026-05-02T19:42:02.520Z
         normalized = value.replace("Z", "+00:00")
         return datetime.fromisoformat(normalized)
     except ValueError:
@@ -102,26 +100,16 @@ def format_compute_result(result: dict) -> str:
         if action == "skipped":
             return f"• RDS: skipped ({previous_status}) - {reason or db_identifier}"
 
-        return f"• RDS: {action} ({previous_status} -> stopped)"
+        return f"• RDS: {action} ({previous_status} -> rebooted)"
 
     if service == "eks":
         previous_desired = result.get("previous_desired", "unknown")
 
         if action == "skipped":
-            return f"• EKS: skipped (desired={previous_desired}) - {reason or 'already optimized'}"
+            return f"• EKS: skipped (desired={previous_desired}) - {reason or 'already active'}"
 
-        target_desired = result.get("target_desired", 0)
+        target_desired = result.get("target_desired", 1)
         return f"• EKS: {action} (desired={previous_desired} -> {target_desired})"
-
-    if service == "elasticache":
-        lambda_result = result.get("lambda_result", {})
-
-        if isinstance(lambda_result, dict):
-            flush_mode = lambda_result.get("flush_mode")
-            if flush_mode:
-                return f"• ElastiCache: flushed ({flush_mode})"
-
-        return "• ElastiCache: flushed"
 
     return f"• {service}: {action}"
 
@@ -134,7 +122,7 @@ def format_network_result(network_result: dict) -> str:
     build_status = build.get("BuildStatus", "unknown")
 
     if build_status == "SUCCEEDED":
-        return "• NAT Gateway: hibernated"
+        return "• NAT Gateway: restored"
 
     return f"• NAT Gateway: {build_status}"
 
@@ -170,20 +158,20 @@ def lambda_handler(event, context):
     post_slack(
         webhook_url,
         {
-            "text": f"[{cluster_name}] 리소스 절전 모드 완료",
+            "text": f"[{cluster_name}] 리소스 복원 완료",
             "blocks": [
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "✅ Hive Hibernate Completed",
+                        "text": "✅ Hive Reboot Completed",
                     },
                 },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*{cluster_name}* 클러스터의 비용 최적화 작업이 완료됐어요.",
+                        "text": f"*{cluster_name}* 클러스터의 리소스 복원 작업이 완료됐어요.",
                     },
                 },
                 {
@@ -195,7 +183,7 @@ def lambda_handler(event, context):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": "*Operation*\n`shutdown`",
+                            "text": "*Operation*\n`reboot`",
                         },
                         {
                             "type": "mrkdwn",
@@ -245,7 +233,7 @@ def lambda_handler(event, context):
     return {
         "ok": True,
         "service": "slack",
-        "action": "hibernate_complete_notified",
+        "action": "reboot_complete_notified",
         "cluster_name": cluster_name,
         "execution": execution_id,
         "started_at": started_at,

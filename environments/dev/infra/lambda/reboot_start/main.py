@@ -65,13 +65,13 @@ def lambda_handler(event, context):
     post_slack(
         webhook_url,
         {
-            "text": f"[{cluster_name}] 리소스 절전 모드 시작",
+            "text": f"[{cluster_name}] 리소스 복원 시작",
             "blocks": [
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "🌙 Hive Hibernate Started",
+                        "text": "🔄 Hive Reboot Started",
                     },
                 },
                 {
@@ -79,8 +79,8 @@ def lambda_handler(event, context):
                     "text": {
                         "type": "mrkdwn",
                         "text": (
-                            f"*{cluster_name}* 클러스터의 비용 최적화 작업을 시작했어요.\n"
-                            f"오프아워 절전 모드로 전환합니다."
+                            f"*{cluster_name}* 클러스터의 리소스 복원 작업을 시작했어요.\n"
+                            f"절전 상태였던 인프라를 다시 활성화합니다."
                         ),
                     },
                 },
@@ -93,7 +93,7 @@ def lambda_handler(event, context):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": "*Operation*\n`shutdown`",
+                            "text": "*Operation*\n`reboot`",
                         },
                         {
                             "type": "mrkdwn",
@@ -121,7 +121,7 @@ def lambda_handler(event, context):
     return {
         "ok": True,
         "service": "slack",
-        "action": "hibernate_start_notified",
+        "action": "reboot_start_notified",
         "cluster_name": cluster_name,
         "execution": execution_id,
         "started_at": started_at,

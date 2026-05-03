@@ -1,0 +1,33 @@
+version: 0.2
+
+env:
+  shell: bash
+  variables:
+    TF_ROOT: environments/dev/vpc
+
+phases:
+  install:
+    commands:
+      - set -euo pipefail
+      - TOFU_VERSION="1.11.0"
+      - curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
+      - chmod +x install-opentofu.sh
+      - ./install-opentofu.sh --install-method standalone
+      - tofu version
+
+  pre_build:
+    commands:
+      - set -euo pipefail
+      - cd "$CODEBUILD_SRC_DIR/$TF_ROOT"
+      - pwd
+      - ls -la
+
+  build:
+    commands:
+      - set -euo pipefail
+      - cd "$CODEBUILD_SRC_DIR/$TF_ROOT"
+      - pwd
+      - ls -la
+      - tofu init -input=false
+      - tofu plan -input=false -out=tfplan
+      - tofu apply -input=false -auto-approve tfplan
