@@ -100,7 +100,7 @@ def format_compute_result(result: dict) -> str:
         if action == "skipped":
             return f"• RDS: skipped ({previous_status}) - {reason or db_identifier}"
 
-        return f"• RDS: {action} ({previous_status} -> rebooted)"
+        return f"• RDS: {action} ({previous_status} -> started)"
 
     if service == "eks":
         previous_desired = result.get("previous_desired", "unknown")

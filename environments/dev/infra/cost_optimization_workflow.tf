@@ -893,7 +893,7 @@ resource "aws_sfn_state_machine" "reboot" {
                       },
                       {
                         Variable     = "$.rds_describe.DbInstances[0].DbInstanceStatus"
-                        StringEquals = "available"
+                        StringEquals = "stopped"
                       }
                     ]
                     Next = "StartRds"
@@ -920,7 +920,7 @@ resource "aws_sfn_state_machine" "reboot" {
 
                 Parameters = {
                   service                = "rds"
-                  action                 = "rebooted"
+                  action                 = "started"
                   db_instance_identifier = module.rds.db_identifier
                   "previous_status.$"    = "$.rds_describe.DbInstances[0].DbInstanceStatus"
                 }
@@ -934,7 +934,7 @@ resource "aws_sfn_state_machine" "reboot" {
                 Parameters = {
                   service                = "rds"
                   action                 = "skipped"
-                  reason                 = "RDS is not available"
+                  reason                 = "RDS is not stopped"
                   db_instance_identifier = module.rds.db_identifier
                   "previous_status.$"    = "$.rds_describe.DbInstances[0].DbInstanceStatus"
                 }
