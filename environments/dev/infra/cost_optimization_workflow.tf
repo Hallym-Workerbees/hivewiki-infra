@@ -765,7 +765,7 @@ data "aws_iam_policy_document" "reboot_permissions" {
     effect = "Allow"
 
     actions = [
-      "rds:RebootDBInstances",
+      "rds:StartDBInstance",
       "rds:DescribeDBInstances"
     ]
 
@@ -827,7 +827,7 @@ resource "aws_sfn_state_machine" "reboot" {
   role_arn = aws_iam_role.reboot.arn
 
   definition = jsonencode({
-    Comment = "${var.cluster_name} Cloud resource minimizer during off-hours"
+    Comment = "${var.cluster_name} Cloud resource recovery after off-hours"
     StartAt = "SendRebootStart"
 
     States = {
@@ -878,10 +878,10 @@ resource "aws_sfn_state_machine" "reboot" {
                 }
 
                 ResultPath = "$.rds_describe"
-                Next       = "ShouldRebootRds"
+                Next       = "ShouldStartRds"
               }
 
-              ShouldRebootRds = {
+              ShouldStartRds = {
                 Type = "Choice"
 
                 Choices = [
@@ -896,26 +896,26 @@ resource "aws_sfn_state_machine" "reboot" {
                         StringEquals = "available"
                       }
                     ]
-                    Next = "RebootRds"
+                    Next = "StartRds"
                   }
                 ]
 
                 Default = "SkipRds"
               }
 
-              RebootRds = {
+              StartRds = {
                 Type     = "Task"
-                Resource = "arn:aws:states:::aws-sdk:rds:rebootDBInstance"
+                Resource = "arn:aws:states:::aws-sdk:rds:startDBInstance"
 
                 Parameters = {
                   DbInstanceIdentifier = module.rds.db_identifier
                 }
 
                 ResultPath = "$.rds_reboot"
-                Next       = "RdsRebootedResult"
+                Next       = "RdsRestartedResult"
               }
 
-              RdsRebootedResult = {
+              RdsRestartedResult = {
                 Type = "Pass"
 
                 Parameters = {
