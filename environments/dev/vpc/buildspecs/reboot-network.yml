@@ -19,14 +19,6 @@ phases:
     commands:
       - set -euo pipefail
       - cd "$CODEBUILD_SRC_DIR/$TF_ROOT"
-      - echo "Preparing NAT Gateway hibernate override"
-      - |
-        cat > hibernate.auto.tfvars.json <<EOF
-        {
-          "natgw_azs": ${NATGW_AZS_JSON}
-        }
-        EOF
-      - cat hibernate.auto.tfvars.json
 
   build:
     commands:
