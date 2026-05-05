@@ -13,3 +13,8 @@ variable "natgw_azs" {
   type    = list(string)
   default = ["a"]
 }
+
+variable "enable_vpce" {
+  type    = bool
+  default = true
+}

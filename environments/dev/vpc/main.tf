@@ -67,21 +67,25 @@ module "vpc" {
 # VPC Endpoints #
 #################
 resource "aws_security_group" "vpce" {
+  count = var.enable_vpce ? 1 : 0
+
   vpc_id      = module.vpc.vpc_id
   name        = "allow-private-subnets"
   description = "Allow traffic from private subnets"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_vpc" {
-  security_group_id = aws_security_group.vpce.id
-
-  cidr_ipv4   = "10.1.0.0/16"
-  ip_protocol = "tcp"
-  from_port   = 443
-  to_port     = 443
+  count             = var.enable_vpce ? 1 : 0
+  security_group_id = aws_security_group.vpce[0].id
+  cidr_ipv4         = "10.1.0.0/16"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
 }
 
 module "vpc_endpoints" {
+  count = var.enable_vpce ? 1 : 0
+
   source = "../../../modules/vpc-endpoint"
   vpc_id = module.vpc.vpc_id
   endpoints = {
@@ -90,21 +94,21 @@ module "vpc_endpoints" {
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
     ecr_api = {
       service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
     ecr_dkr = {
       service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
     s3 = {
       service_name    = "com.amazonaws.${var.aws_region}.s3"
@@ -116,35 +120,35 @@ module "vpc_endpoints" {
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
     sts = {
       service_name        = "com.amazonaws.${var.aws_region}.sts"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
     eks_auth = {
       service_name        = "com.amazonaws.${var.aws_region}.eks-auth"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
     eks = {
       service_name        = "com.amazonaws.${var.aws_region}.eks"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
     sqs = {
       service_name        = "com.amazonaws.${var.aws_region}.sqs"
       endpoint_type       = "Interface"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnet_ids
-      security_group_ids  = [aws_security_group.vpce.id]
+      security_group_ids  = [aws_security_group.vpce[0].id]
     }
   }
 }
