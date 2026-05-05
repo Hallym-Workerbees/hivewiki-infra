@@ -255,9 +255,9 @@ module "eks_node_group" {
 
   # We intentionally use least node group scale, because we use karpenter + spot to reduce costs
   scaling = {
-    desired_size = 1
-    min_size     = 0
-    max_size     = 1
+    desired_size = var.eks_node_group_desired_size
+    min_size     = var.eks_node_group_min_size
+    max_size     = var.eks_node_group_max_size
   }
 
   # Label for Node
@@ -388,7 +388,7 @@ data "aws_iam_policy_document" "lbc" {
     effect = "Allow"
     actions = [
       "ec2:AuthorizeSecurityGroupIngress",
-      "ec2:RevokeSecurityGroupIngress"
+      "ec2:RevokeSecurityGroupIngress",
     ]
     resources = ["*"]
     condition {
@@ -435,7 +435,8 @@ data "aws_iam_policy_document" "lbc" {
       "elasticloadbalancing:DeleteLoadBalancer",
       "elasticloadbalancing:DeleteTargetGroup",
       "elasticloadbalancing:RegisterTargets",
-      "shield:GetSubscriptionState"
+      "elasticloadbalancing:CreateRule",
+      "shield:GetSubscriptionState",
     ]
     resources = ["*"]
   }
@@ -453,20 +454,30 @@ resource "aws_iam_policy" "lbc" {
 #############################
 data "aws_iam_policy_document" "external_dns" {
   version = "2012-10-17"
+
   statement {
-    sid = ""
+    sid = "PermitListHostedZones"
     actions = [
-      "route53:ChangeResourceRecordSets",
       "route53:ListHostedZones",
-      "route53:ListResourceRecordSets"
     ]
     resources = ["*"]
+  }
+
+  statement {
+    sid = "PermitRecordSetsOperations"
+    actions = [
+      "route53:ChangeResourceRecordSets",
+      "route53:ListResourceRecordSets"
+    ]
+    resources = [
+      data.terraform_remote_state.shared.outputs.route53_zone_arn
+    ]
   }
 }
 
 resource "aws_iam_policy" "external_dns" {
   name        = "${var.cluster_name}-external-dns-policy"
   path        = "/"
-  description = "Policy for external-dns"
+  description = "Policy for external-dns in ${var.cluster_name}"
   policy      = data.aws_iam_policy_document.external_dns.json
 }
