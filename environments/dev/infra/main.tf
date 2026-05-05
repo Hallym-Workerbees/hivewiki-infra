@@ -115,7 +115,7 @@ locals {
       namespace       = "karpenter"
       service_account = "karpenter"
     }
-    load-balancer-controller = {
+    load_balancer_controller = {
       role_name = "${var.cluster_name}-load-balancer-controller"
       policies = [{
         name = "${var.cluster_name}-load-balancer-controller"
@@ -123,6 +123,17 @@ locals {
       }]
       namespace       = "kube-system"
       service_account = "aws-load-balancer-controller"
+    }
+    external_dns = {
+      role_name = "${var.cluster_name}-external-dns"
+      policies = [
+        {
+          name = "${var.cluster_name}-external-dns"
+          arn  = aws_iam_policy.external_dns.arn
+        }
+      ]
+      namespace       = "external-dns"
+      service_account = "external-dns"
     }
   }
 }
@@ -434,4 +445,28 @@ resource "aws_iam_policy" "lbc" {
   name   = "${var.cluster_name}-load-balancer-controller"
   path   = "/"
   policy = data.aws_iam_policy_document.lbc.json
+}
+
+
+#############################
+# IAM Role for external-dns #
+#############################
+data "aws_iam_policy_document" "external_dns" {
+  version = "2012-10-17"
+  statement {
+    sid = ""
+    actions = [
+      "route53:ChangeResourceRecordSets",
+      "route53:ListHostedZones",
+      "route53:ListResourceRecordSets"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "external_dns" {
+  name        = "${var.cluster_name}-external-dns-policy"
+  path        = "/"
+  description = "Policy for external-dns"
+  policy      = data.aws_iam_policy_document.external_dns.json
 }
