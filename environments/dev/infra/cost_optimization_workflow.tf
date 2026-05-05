@@ -1,5 +1,9 @@
 data "aws_caller_identity" "current" {}
 
+locals {
+  rds_db_identifier = module.rds.db_identifier
+}
+
 ##############
 # Hibernator #
 ##############
@@ -134,15 +138,15 @@ resource "aws_sfn_state_machine" "hibernate" {
 
         Branches = [
           {
-            StartAt = "CheckRdsStatus"
+            StartAt = "CheckRdsInitialStatus"
 
             States = {
-              CheckRdsStatus = {
+              CheckRdsInitialStatus = {
                 Type     = "Task"
                 Resource = "arn:aws:states:::aws-sdk:rds:describeDBInstances"
 
                 Parameters = {
-                  DbInstanceIdentifier = module.rds.db_identifier
+                  DbInstanceIdentifier = local.rds_db_identifier
                 }
 
                 ResultPath = "$.rds_describe"
@@ -176,11 +180,42 @@ resource "aws_sfn_state_machine" "hibernate" {
                 Resource = "arn:aws:states:::aws-sdk:rds:stopDBInstance"
 
                 Parameters = {
-                  DbInstanceIdentifier = module.rds.db_identifier
+                  DbInstanceIdentifier = local.rds_db_identifier
                 }
 
-                ResultPath = "$.rds_stop"
-                Next       = "RdsStoppedResult"
+                ResultPath = "$.rdsStop"
+                Next       = "WaitBeforeCheckingRdsStopped"
+              }
+
+              WaitBeforeCheckingRdsStopped = {
+                Type    = "Wait"
+                Seconds = 30
+                Next    = "CheckRdsStatus"
+              }
+
+              CheckRdsStatus = {
+                Type     = "Task"
+                Resource = "arn:aws:states:::aws-sdk:rds:describeDBInstances"
+
+                Parameters = {
+                  DbInstanceIdentifier = local.rds_db_identifier
+                }
+
+                ResultPath = "$.rdsStatus"
+                Next       = "CheckRdsStopped"
+              }
+
+              CheckRdsStopped = {
+                Type = "Choice"
+
+                Choices = [
+                  {
+                    Variable     = "$.rdsStatus.DbInstances[0].DbInstanceStatus"
+                    StringEquals = "stopped"
+                    Next         = "RdsStoppedResult"
+                  }
+                ]
+                Default = "WaitBeforeCheckingRdsStopped"
               }
 
               RdsStoppedResult = {
@@ -189,7 +224,7 @@ resource "aws_sfn_state_machine" "hibernate" {
                 Parameters = {
                   service                = "rds"
                   action                 = "stopped"
-                  db_instance_identifier = module.rds.db_identifier
+                  db_instance_identifier = local.rds_db_identifier
                   "previous_status.$"    = "$.rds_describe.DbInstances[0].DbInstanceStatus"
                 }
 
@@ -203,7 +238,7 @@ resource "aws_sfn_state_machine" "hibernate" {
                   service                = "rds"
                   action                 = "skipped"
                   reason                 = "RDS is not available"
-                  db_instance_identifier = module.rds.db_identifier
+                  db_instance_identifier = local.rds_db_identifier
                   "previous_status.$"    = "$.rds_describe.DbInstances[0].DbInstanceStatus"
                 }
 
@@ -264,7 +299,65 @@ resource "aws_sfn_state_machine" "hibernate" {
                 }
 
                 ResultPath = "$.eks_scale_down"
-                Next       = "EksScaledDownResult"
+                Next       = "WaitBeforeCheckingNodeGroupScaledDown"
+              }
+
+              WaitBeforeCheckingNodeGroupScaledDown = {
+                Type    = "Wait"
+                Seconds = 30
+                Next    = "ListNodeGroupInstances"
+              }
+
+              ListNodeGroupInstances = {
+                Type     = "Task"
+                Resource = "arn:aws:states:::aws-sdk:ec2:describeInstances"
+
+                Parameters = {
+                  Filters = [
+                    {
+                      Name       = "tag:eks:cluster-name",
+                      "Values.$" = "States.Array($.clusterName)"
+                    },
+                    {
+                      Name       = "tag:eks:nodegroup-name",
+                      "Values.$" = "States.Array($.nodegroupName)"
+                    },
+                    {
+                      Name = "instance-state-name",
+                      Values = [
+                        "pending",
+                        "running",
+                        "stopping",
+                        "stopped",
+                        "shutting-down"
+                      ]
+                    }
+                  ]
+                },
+                ResultPath = "$.check_eks_scale_down"
+                Next       = "CountRemainingInstanecs"
+              }
+
+              CountRemainingInstanecs = {
+                Type = "Pass"
+                Parameters = {
+                  "remainingInstanceCount.$" : "States.ArrayLength($.instanceCheck.instances)",
+                  "instances.$" : "$.instanceCheck.instances"
+                }
+                ResultPath = "$.instanceCheck"
+                Next       = "CheckInstancesGone"
+              }
+
+              CheckInstancesGone = {
+                Type = "Choice"
+                Choices = [
+                  {
+                    Variable      = "$.instanceCheck.remainInstanceCount"
+                    NumericEquals = 0
+                    Next          = "EksScaledDownResult"
+                  }
+                ]
+                Default = "WaitBeforeCheckingNodeGroupScaledDown"
               }
 
               EksScaledDownResult = {
@@ -676,7 +769,9 @@ data "aws_iam_policy_document" "hibernate_network_codebuild_permissions" {
       "ec2:ModifySubnetAttribute",
       "ec2:ReleaseAddress",
       "ec2:CreateTags",
-      "ec2:DeleteTags"
+      "ec2:DeleteTags",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DeleteSecurityGroup",
     ]
 
     resources = ["*"]
@@ -879,7 +974,7 @@ resource "aws_sfn_state_machine" "reboot" {
                 Resource = "arn:aws:states:::aws-sdk:rds:describeDBInstances"
 
                 Parameters = {
-                  DbInstanceIdentifier = module.rds.db_identifier
+                  DbInstanceIdentifier = local.rds_db_identifier
                 }
 
                 ResultPath = "$.rds_describe"
@@ -913,7 +1008,7 @@ resource "aws_sfn_state_machine" "reboot" {
                 Resource = "arn:aws:states:::aws-sdk:rds:startDBInstance"
 
                 Parameters = {
-                  DbInstanceIdentifier = module.rds.db_identifier
+                  DbInstanceIdentifier = local.rds_db_identifier
                 }
 
                 ResultPath = "$.rds_reboot"
@@ -926,7 +1021,7 @@ resource "aws_sfn_state_machine" "reboot" {
                 Parameters = {
                   service                = "rds"
                   action                 = "started"
-                  db_instance_identifier = module.rds.db_identifier
+                  db_instance_identifier = local.rds_db_identifier
                   "previous_status.$"    = "$.rds_describe.DbInstances[0].DbInstanceStatus"
                 }
 
@@ -940,7 +1035,7 @@ resource "aws_sfn_state_machine" "reboot" {
                   service                = "rds"
                   action                 = "skipped"
                   reason                 = "RDS is not stopped"
-                  db_instance_identifier = module.rds.db_identifier
+                  db_instance_identifier = local.rds_db_identifier
                   "previous_status.$"    = "$.rds_describe.DbInstances[0].DbInstanceStatus"
                 }
 
@@ -1201,7 +1296,12 @@ data "aws_iam_policy_document" "reboot_network_codebuild_permissions" {
       "ec2:ModifySubnetAttribute",
       "ec2:ReleaseAddress",
       "ec2:CreateTags",
-      "ec2:DeleteTags"
+      "ec2:DeleteTags",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DescribeSecurityGroups",
+      "ec2:CreateSecurityGroup",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:AuthorizeSecurityGroupIngress"
     ]
 
     resources = ["*"]
