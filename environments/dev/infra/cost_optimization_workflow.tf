@@ -335,10 +335,10 @@ resource "aws_sfn_state_machine" "hibernate" {
                   ]
                 },
                 ResultPath = "$.check_eks_scale_down"
-                Next       = "CountRemainingInstanecs"
+                Next       = "CountRemainingInstances"
               }
 
-              CountRemainingInstanecs = {
+              CountRemainingInstances = {
                 Type = "Pass"
                 Parameters = {
                   "remainingInstanceCount.$" : "States.ArrayLength($.instanceCheck.instances)",
@@ -352,7 +352,7 @@ resource "aws_sfn_state_machine" "hibernate" {
                 Type = "Choice"
                 Choices = [
                   {
-                    Variable      = "$.instanceCheck.remainInstanceCount"
+                    Variable      = "$.instanceCheck.remainingInstanceCount"
                     NumericEquals = 0
                     Next          = "EksScaledDownResult"
                   }
@@ -461,7 +461,7 @@ resource "aws_sfn_state_machine" "hibernate" {
               Type  = "PLAINTEXT"
             },
             {
-              Name  = "NATGW_AZS_JSON"
+              Name  = "ENABLE_VPCE_JSON"
               Value = "false"
               Type  = "PLAINTEXT"
             }
