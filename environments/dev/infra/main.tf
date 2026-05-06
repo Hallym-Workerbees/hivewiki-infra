@@ -467,7 +467,8 @@ data "aws_iam_policy_document" "external_dns" {
     sid = "PermitRecordSetsOperations"
     actions = [
       "route53:ChangeResourceRecordSets",
-      "route53:ListResourceRecordSets"
+      "route53:ListResourceRecordSets",
+      "route53:ListTagsForResources"
     ]
     resources = [
       data.terraform_remote_state.shared.outputs.route53_zone_arn
