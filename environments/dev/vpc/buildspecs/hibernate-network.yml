@@ -23,7 +23,7 @@ phases:
       - |
         cat > hibernate.auto.tfvars.json <<EOF
         {
-          "natgw_azs": ${NATGW_AZS_JSON}
+          "natgw_azs": ${NATGW_AZS_JSON},
           "enable_vpce": ${ENABLE_VPCE_JSON}
         }
         EOF

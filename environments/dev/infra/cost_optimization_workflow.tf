@@ -66,6 +66,17 @@ data "aws_iam_policy_document" "hibernate_permissions" {
       "eks:UpdateNodegroupConfig"
     ]
 
+    resources = [module.eks_node_group.ng_arn]
+  }
+
+  statement {
+    sid    = "AllowCheckEC2"
+    effect = "Allow"
+
+    actions = [
+      "ec2:DescribeInstances"
+    ]
+
     resources = ["*"]
   }
 
@@ -184,13 +195,7 @@ resource "aws_sfn_state_machine" "hibernate" {
                 }
 
                 ResultPath = "$.rdsStop"
-                Next       = "WaitBeforeCheckingRdsStopped"
-              }
-
-              WaitBeforeCheckingRdsStopped = {
-                Type    = "Wait"
-                Seconds = 30
-                Next    = "CheckRdsStatus"
+                Next       = "CheckRdsStatus"
               }
 
               CheckRdsStatus = {
@@ -216,6 +221,12 @@ resource "aws_sfn_state_machine" "hibernate" {
                   }
                 ]
                 Default = "WaitBeforeCheckingRdsStopped"
+              }
+
+              WaitBeforeCheckingRdsStopped = {
+                Type    = "Wait"
+                Seconds = var.hibernate_db_instance_polling_period_seconds
+                Next    = "CheckRdsStatus"
               }
 
               RdsStoppedResult = {
@@ -299,13 +310,7 @@ resource "aws_sfn_state_machine" "hibernate" {
                 }
 
                 ResultPath = "$.eks_scale_down"
-                Next       = "WaitBeforeCheckingNodeGroupScaledDown"
-              }
-
-              WaitBeforeCheckingNodeGroupScaledDown = {
-                Type    = "Wait"
-                Seconds = 30
-                Next    = "ListNodeGroupInstances"
+                Next       = "ListNodeGroupInstances"
               }
 
               ListNodeGroupInstances = {
@@ -315,12 +320,16 @@ resource "aws_sfn_state_machine" "hibernate" {
                 Parameters = {
                   Filters = [
                     {
-                      Name       = "tag:eks:cluster-name",
-                      "Values.$" = "States.Array($.clusterName)"
+                      Name = "tag:eks:cluster-name",
+                      Values = [
+                        module.eks_cluster.cluster_name
+                      ]
                     },
                     {
-                      Name       = "tag:eks:nodegroup-name",
-                      "Values.$" = "States.Array($.nodegroupName)"
+                      Name = "tag:eks:nodegroup-name",
+                      Values = [
+                        module.eks_node_group.ng_name
+                      ]
                     },
                     {
                       Name = "instance-state-name",
@@ -333,16 +342,19 @@ resource "aws_sfn_state_machine" "hibernate" {
                       ]
                     }
                   ]
-                },
-                ResultPath = "$.check_eks_scale_down"
+                }
+                ResultSelector = {
+                  "instanceIds.$" = "$.Reservations[*].Instances[*].InstanceId"
+                }
+                ResultPath = "$.instanceCheck"
                 Next       = "CountRemainingInstances"
               }
 
               CountRemainingInstances = {
                 Type = "Pass"
                 Parameters = {
-                  "remainingInstanceCount.$" : "States.ArrayLength($.instanceCheck.instances)",
-                  "instances.$" : "$.instanceCheck.instances"
+                  "remainingInstanceCount.$" : "States.ArrayLength($.instanceCheck.instanceIds)",
+                  "instanceIds.$" : "$.instanceCheck.instanceIds"
                 }
                 ResultPath = "$.instanceCheck"
                 Next       = "CheckInstancesGone"
@@ -358,6 +370,12 @@ resource "aws_sfn_state_machine" "hibernate" {
                   }
                 ]
                 Default = "WaitBeforeCheckingNodeGroupScaledDown"
+              }
+
+              WaitBeforeCheckingNodeGroupScaledDown = {
+                Type    = "Wait"
+                Seconds = var.hibernate_ng_polling_period_seconds
+                Next    = "ListNodeGroupInstances"
               }
 
               EksScaledDownResult = {
@@ -885,6 +903,17 @@ data "aws_iam_policy_document" "reboot_permissions" {
   }
 
   statement {
+    sid    = "AllowCheckRebootEC2"
+    effect = "Allow"
+
+    actions = [
+      "ec2:DescribeInstances"
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "AllowNetworkRebootCodeBuild"
     effect = "Allow"
 
@@ -1012,7 +1041,39 @@ resource "aws_sfn_state_machine" "reboot" {
                 }
 
                 ResultPath = "$.rds_reboot"
-                Next       = "RdsRestartedResult"
+                Next       = "CheckRdsAvailableStatus"
+              }
+
+              CheckRdsAvailableStatus = {
+                Type     = "Task"
+                Resource = "arn:aws:states:::aws-sdk:rds:describeDBInstances"
+
+                Parameters = {
+                  DbInstanceIdentifier = local.rds_db_identifier
+                }
+
+                ResultPath = "$.rds_status"
+                Next       = "CheckRdsAvailable"
+              }
+
+              CheckRdsAvailable = {
+                Type = "Choice"
+
+                Choices = [
+                  {
+                    Variable     = "$.rds_status.DbInstances[0].DbInstanceStatus"
+                    StringEquals = "available"
+                    Next         = "RdsRestartedResult"
+                  }
+                ]
+
+                Default = "WaitBeforeCheckingRdsAvailable"
+              }
+
+              WaitBeforeCheckingRdsAvailable = {
+                Type    = "Wait"
+                Seconds = var.reboot_db_instance_polling_period_seconds
+                Next    = "CheckRdsAvailableStatus"
               }
 
               RdsRestartedResult = {
@@ -1090,14 +1151,88 @@ resource "aws_sfn_state_machine" "reboot" {
                   NodegroupName = module.eks_node_group.ng_name
 
                   ScalingConfig = {
-                    MinSize     = 0
-                    DesiredSize = 1
-                    MaxSize     = 1
+                    MinSize     = var.eks_node_group_min_size
+                    DesiredSize = var.eks_node_group_desired_size
+                    MaxSize     = var.eks_node_group_max_size
                   }
                 }
 
                 ResultPath = "$.eks_scale_up"
-                Next       = "EksScaledUpResult"
+                Next       = "ListRunningNodeGroupInstances"
+              }
+
+              ListRunningNodeGroupInstances = {
+                Type     = "Task"
+                Resource = "arn:aws:states:::aws-sdk:ec2:describeInstances"
+
+                Parameters = {
+                  Filters = [
+                    {
+                      Name = "tag:eks:cluster-name"
+                      Values = [
+                        module.eks_cluster.cluster_name
+                      ]
+                    },
+                    {
+                      Name = "tag:eks:nodegroup-name"
+                      Values = [
+                        module.eks_node_group.ng_name
+                      ]
+                    },
+                    {
+                      Name = "instance-state-name"
+                      Values = [
+                        "running"
+                      ]
+                    }
+                  ]
+                }
+
+                ResultSelector = {
+                  "instanceIds.$" = "$.Reservations[*].Instances[*].InstanceId"
+                }
+
+                ResultPath = "$.running_instance_check"
+                Next       = "CountRunningNodeGroupInstances"
+              }
+
+              CountRunningNodeGroupInstances = {
+                Type = "Pass"
+
+                Parameters = {
+                  "runningInstanceCount.$" = "States.ArrayLength($.running_instance_check.instanceIds)"
+                  "instanceIds.$"          = "$.running_instance_check.instanceIds"
+                  targetDesired            = var.eks_node_group_desired_size
+                }
+
+                ResultPath = "$.running_instance_check"
+                Next       = "CheckRunningNodeGroupInstances"
+              }
+
+              CheckRunningNodeGroupInstances = {
+                Type = "Choice"
+
+                Choices = [
+                  {
+                    Variable      = "$.running_instance_check.runningInstanceCount"
+                    NumericEquals = var.eks_node_group_desired_size
+                    Next          = "WaitAfterNodeGroupRunning"
+                  }
+                ]
+
+                Default = "WaitBeforeCheckingRunningNodeGroupInstances"
+              }
+
+              WaitBeforeCheckingRunningNodeGroupInstances = {
+                Type    = "Wait"
+                Seconds = var.reboot_ng_polling_period_seconds
+                Next    = "ListRunningNodeGroupInstances"
+              }
+
+              WaitAfterNodeGroupRunning = {
+                Type    = "Wait"
+                Seconds = var.reboot_ng_post_scale_up_wait_seconds
+                Next    = "EksScaledUpResult"
               }
 
               EksScaledUpResult = {
@@ -1111,9 +1246,9 @@ resource "aws_sfn_state_machine" "reboot" {
                   "previous_min.$"     = "$.eks_nodegroup.Nodegroup.ScalingConfig.MinSize"
                   "previous_desired.$" = "$.eks_nodegroup.Nodegroup.ScalingConfig.DesiredSize"
                   "previous_max.$"     = "$.eks_nodegroup.Nodegroup.ScalingConfig.MaxSize"
-                  target_min           = 0
-                  target_desired       = 1
-                  target_max           = 1
+                  target_min           = var.eks_node_group_min_size
+                  target_desired       = var.eks_node_group_desired_size
+                  target_max           = var.eks_node_group_max_size
                 }
 
                 End = true
