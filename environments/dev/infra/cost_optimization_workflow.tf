@@ -790,6 +790,7 @@ data "aws_iam_policy_document" "hibernate_network_codebuild_permissions" {
       "ec2:DeleteTags",
       "ec2:DescribeSecurityGroups",
       "ec2:DeleteSecurityGroup",
+      "ec2:RevokeSecurityGroupIngress",
     ]
 
     resources = ["*"]
