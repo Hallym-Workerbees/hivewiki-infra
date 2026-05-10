@@ -226,6 +226,9 @@ resource "helm_release" "argocd" {
 
   values = [
     yamlencode({
+      server = {
+        insecure = true
+      }
       global = {
         image = {
           repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd"
