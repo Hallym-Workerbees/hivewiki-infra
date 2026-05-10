@@ -227,7 +227,9 @@ resource "helm_release" "argocd" {
   values = [
     yamlencode({
       server = {
-        insecure = true
+        extraArgs = [
+          "--insecure"
+        ]
       }
       global = {
         image = {
