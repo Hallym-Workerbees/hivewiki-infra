@@ -37,3 +37,7 @@ output "interruption_handling_queue" {
 output "karpenter_node_role_name" {
   value = module.karpenter_prerequisite.node_role_name
 }
+
+output "web_acl_name" {
+  value = module.waf.web_acl_name
+}
