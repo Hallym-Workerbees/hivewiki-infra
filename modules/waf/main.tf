@@ -11,8 +11,20 @@ resource "aws_wafv2_web_acl" "alb" {
     name     = "rate-limit-all-ip"
     priority = 0
 
-    action {
-      count {}
+    dynamic "action" {
+      for_each = var.waf_rule_action == "count" ? [1] : []
+
+      content {
+        count {}
+      }
+    }
+
+    dynamic "action" {
+      for_each = var.waf_rule_action == "block" ? [1] : []
+
+      content {
+        block {}
+      }
     }
 
     statement {
@@ -34,8 +46,20 @@ resource "aws_wafv2_web_acl" "alb" {
     name     = "AWS-AWSManagedRulesAmazonIpReputationList"
     priority = 10
 
-    override_action {
-      count {}
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "count" ? [1] : []
+
+      content {
+        count {}
+      }
+    }
+
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "block" ? [1] : []
+
+      content {
+        none {}
+      }
     }
 
     statement {
@@ -56,8 +80,20 @@ resource "aws_wafv2_web_acl" "alb" {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
     priority = 20
 
-    override_action {
-      count {}
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "count" ? [1] : []
+
+      content {
+        count {}
+      }
+    }
+
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "block" ? [1] : []
+
+      content {
+        none {}
+      }
     }
 
     statement {
@@ -78,8 +114,20 @@ resource "aws_wafv2_web_acl" "alb" {
     name     = "AWS-AWSManagedRulesSQLiRuleSet"
     priority = 30
 
-    override_action {
-      count {}
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "count" ? [1] : []
+
+      content {
+        count {}
+      }
+    }
+
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "block" ? [1] : []
+
+      content {
+        none {}
+      }
     }
 
     statement {
@@ -100,8 +148,20 @@ resource "aws_wafv2_web_acl" "alb" {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
     priority = 40
 
-    override_action {
-      count {}
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "count" ? [1] : []
+
+      content {
+        count {}
+      }
+    }
+
+    dynamic "override_action" {
+      for_each = var.waf_rule_action == "block" ? [1] : []
+
+      content {
+        none {}
+      }
     }
 
     statement {
