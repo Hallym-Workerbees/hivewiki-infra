@@ -98,6 +98,17 @@ locals {
       namespace       = "karpenter"
       service_account = "karpenter"
     }
+    argocd_image_updater = {
+      role_name = "${var.cluster_name}-argocd-image-updater"
+      policies = [
+        {
+          name = "${var.cluster_name}-argocd-image-updater"
+          arn  = aws_iam_policy.argocd_image_updater.arn
+        }
+      ]
+      namespace       = "argocd"
+      service_account = "argocd-image-updater"
+    }
   }
 }
 
@@ -852,4 +863,31 @@ module "waf" {
   rate_limit             = 5000
   rate_limit_eval_window = 300
   waf_rule_action        = var.waf_rule_action
+}
+
+########################
+# ArgoCD Image Updater #
+########################
+data "aws_iam_policy_document" "argocd_image_updater" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetAuthorizationToken",
+      "ecr:DescribeRepositories",
+      "ecr:ListImages",
+      "ecr:DescribeImages",
+      "ecr:GetRepositoryPolicy",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "argocd_image_updater" {
+  name        = "${var.cluster_name}-argocd-image-updater"
+  path        = "/"
+  description = "Policy for argocd-image-updater in ${var.cluster_name}"
+  policy      = data.aws_iam_policy_document.argocd_image_updater.json
 }
