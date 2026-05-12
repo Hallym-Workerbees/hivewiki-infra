@@ -749,3 +749,15 @@ resource "aws_iam_policy" "external_dns" {
   description = "Policy for external-dns in ${var.cluster_name}"
   policy      = data.aws_iam_policy_document.external_dns.json
 }
+
+#######
+# WAF #
+#######
+module "waf" {
+  source = "../../../modules/waf"
+
+  cluster_name           = var.cluster_name
+  rate_limit             = 500
+  rate_limit_eval_window = 300
+  waf_rule_action        = var.waf_rule_action
+}

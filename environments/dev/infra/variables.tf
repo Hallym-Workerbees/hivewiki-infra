@@ -63,3 +63,14 @@ variable "reboot_ng_post_scale_up_wait_seconds" {
   type    = number
   default = 30
 }
+
+variable "waf_rule_action" {
+  description = "WAF rule action mode. `count` monitors only, `block` enforces blocking."
+  type        = string
+  default     = "count"
+
+  validation {
+    condition     = contains(["count", "block"], var.waf_rule_action)
+    error_message = "waf_rule_action must be either `count` or `block`."
+  }
+}
