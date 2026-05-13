@@ -248,16 +248,21 @@ module "vpc-endpoints" {
 ###################
 # S3 + Cloudfront #
 ###################
-module "s3-statics" {
+module "s3_statics" {
   source = "../../../modules/s3-cloudfront"
 
-  bucket_name = "hivewiki-statics-prod"
+  bucket_name = "hivewiki-statics-dev"
+
+  enable_custom_domain = true
+  zone_id              = data.terraform_remote_state.shared.outputs.route53_zone_id
+  custom_domains       = var.cloudfront_custom_domains
+  acm_certificate_arn  = data.terraform_remote_state.shared.outputs.cloudfront_acm_certificate_arn
 }
 
 ################
 # S3 (Archive) #
 ################
-module "s3-archive" {
+module "s3_archive" {
   source             = "../../../modules/s3-archive"
   backup_bucket_name = "hivewiki-archive-bucket-prod"
   backup_bucket_lifecycle_rules = {
