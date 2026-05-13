@@ -1,13 +1,14 @@
-variable "backup_bucket_name" {
+variable "bucket_name" {
   description = "Backup Bucket name"
   type        = string
 }
 
-variable "backup_bucket_lifecycle_rules" {
+variable "bucket_lifecycle_rules" {
   description = "Lifecycle rules for the backup bucket"
   type = map(object({
-    id     = string
-    prefix = string
+    enabled = optional(bool, true)
+    id      = string
+    prefix  = string
     transitions = list(object({
       days          = number
       storage_class = string

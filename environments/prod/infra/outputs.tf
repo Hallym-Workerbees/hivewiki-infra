@@ -41,3 +41,12 @@ output "karpenter_node_role_name" {
 output "web_acl_arn" {
   value = module.waf.web_acl_arn
 }
+
+
+output "loki_chunk_bucket_name" {
+  value = module.loki_chunk_bucket.bucket_name
+}
+
+output "loki_ruler_bucket_name" {
+  value = module.loki_ruler_bucket.bucket_name
+}
