@@ -6,8 +6,8 @@ locals {
         name = aws_iam_policy.web.name
         arn  = aws_iam_policy.web.arn
       }]
-      namespace       = "${var.cluster_name}-web"
-      service_account = "${var.cluster_name}-web"
+      namespace       = var.web_ns
+      service_account = var.web_sa
     }
   }
 }

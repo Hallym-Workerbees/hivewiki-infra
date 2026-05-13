@@ -94,3 +94,15 @@ variable "cloudfront_custom_domains" {
     "attachment.hive-wiki.com"
   ]
 }
+
+variable "web_ns" {
+  description = "Kubernetes namespace name for web"
+  type        = string
+  default     = "hivewiki-web-dev"
+}
+
+variable "web_sa" {
+  description = "Kubernetes serviceAccount name for web"
+  type        = string
+  default     = "hivewiki-web-dev"
+}
