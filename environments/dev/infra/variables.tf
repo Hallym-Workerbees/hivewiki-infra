@@ -74,3 +74,15 @@ variable "waf_rule_action" {
     error_message = "waf_rule_action must be either `count` or `block`."
   }
 }
+
+variable "web_profile_image_bucket_prefix" {
+  description = "Bucket prefix for profile images"
+  type        = string
+  default     = "profiles"
+}
+
+variable "web_post_image_bucket_prefix" {
+  description = "Bucket prefix for post images"
+  type        = string
+  default     = "post-images"
+}
