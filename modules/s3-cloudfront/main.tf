@@ -50,6 +50,7 @@ resource "aws_cloudfront_origin_access_control" "default" {
 resource "aws_cloudfront_distribution" "s3_distribution" {
   enabled = true
   comment = "CDN for image bucket"
+  aliases = var.custom_domains
 
   origin {
     domain_name              = aws_s3_bucket.statics.bucket_regional_domain_name
@@ -73,9 +74,23 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
   }
 
-  viewer_certificate {
-    cloudfront_default_certificate = true
+  dynamic "viewer_certificate" {
+    for_each = var.enable_custom_domain ? [1] : []
+
+    content {
+      acm_certificate_arn = var.acm_certificate_arn
+      ssl_support_method  = "sni-only"
+    }
   }
+
+  dynamic "viewer_certificate" {
+    for_each = var.enable_custom_domain ? [] : [1]
+
+    content {
+      cloudfront_default_certificate = true
+    }
+  }
+
 
   price_class = "PriceClass_100"
 }
@@ -105,4 +120,16 @@ data "aws_iam_policy_document" "origin_bucket_policy" {
 
 data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
+}
+resource "aws_route53_record" "s3_cloudfront" {
+  for_each = aws_cloudfront_distribution.s3_distribution.aliases
+  zone_id  = var.zone_id
+  name     = each.value
+  type     = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.s3_distribution.domain_name
+    zone_id                = aws_cloudfront_distribution.s3_distribution.hosted_zone_id
+    evaluate_target_health = false
+  }
 }

@@ -86,3 +86,11 @@ variable "web_post_image_bucket_prefix" {
   type        = string
   default     = "post-images"
 }
+
+variable "cloudfront_custom_domains" {
+  description = "value"
+  type        = list(string)
+  default = [
+    "attachment.hive-wiki.com"
+  ]
+}

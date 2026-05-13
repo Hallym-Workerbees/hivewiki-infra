@@ -156,6 +156,11 @@ module "s3_statics" {
   source = "../../../modules/s3-cloudfront"
 
   bucket_name = "hivewiki-statics-dev"
+
+  enable_custom_domain = true
+  zone_id              = data.terraform_remote_state.shared.outputs.route53_zone_id
+  custom_domains       = var.cloudfront_custom_domains
+  acm_certificate_arn  = data.terraform_remote_state.shared.outputs.cloudfront_acm_certificate_arn
 }
 
 
