@@ -84,4 +84,5 @@ variable "acm_certificate_arn" {
 variable "allowed_origins" {
   description = "List of allowed origins for CORS"
   type        = list(string)
+  default     = []
 }
