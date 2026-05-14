@@ -10,6 +10,19 @@ resource "aws_s3_bucket" "statics" {
   }
 }
 
+resource "aws_s3_bucket_cors_configuration" "statics" {
+  count = length(var.allowed_origins) > 0 ? 1 : 0
+
+  bucket = aws_s3_bucket.statics.id
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["POST", "GET", "HEAD"]
+    expose_headers  = ["ETag", "Location"]
+    max_age_seconds = 3000
+    allowed_origins = var.allowed_origins
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "statics" {
   bucket = aws_s3_bucket.statics.id
 
