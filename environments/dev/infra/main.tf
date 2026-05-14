@@ -115,6 +115,7 @@ locals {
       namespace       = "karpenter"
       service_account = "karpenter"
     }
+
     load_balancer_controller = {
       role_name = "${var.cluster_name}-load-balancer-controller"
       policies = [{
@@ -124,6 +125,7 @@ locals {
       namespace       = "kube-system"
       service_account = "aws-load-balancer-controller"
     }
+
     external_dns = {
       role_name = "${var.cluster_name}-external-dns"
       policies = [
@@ -135,6 +137,7 @@ locals {
       namespace       = "external-dns"
       service_account = "external-dns"
     }
+
     argocd_image_updater = {
       role_name = "${var.cluster_name}-argocd-image-updater"
       policies = [
@@ -146,43 +149,17 @@ locals {
       namespace       = "argocd"
       service_account = "argocd-image-updater"
     }
-  }
-}
 
-###################
-# S3 + Cloudfront #
-###################
-module "s3_statics" {
-  source = "../../../modules/s3-cloudfront"
-
-  bucket_name = "hivewiki-statics-dev"
-
-  enable_custom_domain = true
-  zone_id              = data.terraform_remote_state.shared.outputs.route53_zone_id
-  custom_domains       = var.cloudfront_custom_domains
-  acm_certificate_arn  = data.terraform_remote_state.shared.outputs.cloudfront_acm_certificate_arn
-}
-
-
-################
-# S3 (Archive) #
-################
-module "s3_archive" {
-  source             = "../../../modules/s3-archive"
-  backup_bucket_name = "hivewiki-archive-bucket-dev"
-  backup_bucket_lifecycle_rules = {
-    daily = {
-      id     = "daily-backup-retention"
-      prefix = ""
-      transitions = [
+    loki = {
+      role_name = "${var.cluster_name}-loki"
+      policies = [
         {
-          days          = 30
-          storage_class = "STANDARD_IA"
-        },
-        { days          = 90
-          storage_class = "DEEP_ARCHIVE"
+          name = aws_iam_policy.loki.name
+          arn  = aws_iam_policy.loki.arn
         }
       ]
+      namespace       = "monitoring"
+      service_account = "loki"
     }
   }
 }
@@ -803,4 +780,64 @@ resource "aws_iam_policy" "argocd_image_updater" {
   path        = "/"
   description = "Policy for argocd-image-updater in ${var.cluster_name}"
   policy      = data.aws_iam_policy_document.argocd_image_updater.json
+}
+
+##########
+## Loki ##
+##########
+
+###################
+# S3 (Loki Chunk) #
+###################
+module "loki_chunk_bucket" {
+  source      = "../../../modules/s3-archive"
+  bucket_name = "${var.cluster_name}-loki-chunk"
+  bucket_lifecycle_rules = {
+    daily = {
+      enabled = true
+      id      = "daily-backup-retention"
+      prefix  = ""
+      transitions = [
+        {
+          days          = 30
+          storage_class = "STANDARD_IA"
+        }
+      ]
+      expiration_days = 90
+    }
+  }
+}
+
+###################
+# S3 (Loki Ruler) #
+###################
+module "loki_ruler_bucket" {
+  source      = "../../../modules/s3-archive"
+  bucket_name = "${var.cluster_name}-loki-ruler"
+}
+
+data "aws_iam_policy_document" "loki" {
+  statement {
+    sid    = "Allow access for loki"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DeleteObject"
+    ]
+    resources = [
+      module.loki_chunk_bucket.bucket_arn,
+      "${module.loki_chunk_bucket.bucket_arn}/*",
+      module.loki_ruler_bucket.bucket_arn,
+      "${module.loki_ruler_bucket.bucket_arn}/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "loki" {
+  name        = "${var.cluster_name}-loki"
+  path        = "/"
+  description = "Policy for loki in ${var.cluster_name}"
+  policy      = data.aws_iam_policy_document.loki.json
 }

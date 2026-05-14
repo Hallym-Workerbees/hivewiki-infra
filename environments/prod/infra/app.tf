@@ -12,6 +12,22 @@ locals {
   }
 }
 
+###################
+# S3 + Cloudfront #
+###################
+module "web_cloudfront_s3_bucket" {
+  source = "../../../modules/s3-cloudfront"
+
+  bucket_name = "hivewiki-statics-dev"
+
+  enable_custom_domain = true
+  zone_id              = data.terraform_remote_state.shared.outputs.route53_zone_id
+  custom_domains       = var.cloudfront_custom_domains
+  acm_certificate_arn  = data.terraform_remote_state.shared.outputs.cloudfront_acm_certificate_arn
+}
+
+
+
 module "app_pod_identity_association" {
   source   = "../../../modules/eks-pod-identity-association"
   for_each = local.app_pod_identity_associations
@@ -35,8 +51,8 @@ data "aws_iam_policy_document" "web" {
       "s3:DeleteObject"
     ]
     resources = [
-      "${module.s3_statics.bucket_arn}/${var.web_profile_image_bucket_prefix}/*",
-      "${module.s3_statics.bucket_arn}/${var.web_post_image_bucket_prefix}/*"
+      "${module.web_cloudfront_s3_bucket.bucket_arn}/${var.web_profile_image_bucket_prefix}/*",
+      "${module.web_cloudfront_s3_bucket.bucket_arn}/${var.web_post_image_bucket_prefix}/*"
     ]
   }
   statement {
@@ -46,7 +62,7 @@ data "aws_iam_policy_document" "web" {
       "cloudfront:CreateInvalidation"
     ]
     resources = [
-      module.s3_statics.cloudfront_distribution_arn
+      module.web_cloudfront_s3_bucket.cloudfront_distribution_arn
     ]
   }
 }
