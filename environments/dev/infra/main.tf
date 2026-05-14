@@ -161,6 +161,18 @@ locals {
       namespace       = "monitoring"
       service_account = "loki"
     }
+
+    yace = {
+      role_name = "${var.cluster_name}-yace"
+      policies = [
+        {
+          name = aws_iam_policy.yace.name
+          arn  = aws_iam_policy.yace.arn
+        }
+      ]
+      namespace       = "monitoring"
+      service_account = "yace"
+    }
   }
 }
 
@@ -840,4 +852,37 @@ resource "aws_iam_policy" "loki" {
   path        = "/"
   description = "Policy for loki in ${var.cluster_name}"
   policy      = data.aws_iam_policy_document.loki.json
+}
+
+########
+# YACE #
+########
+data "aws_iam_policy_document" "yace" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "tag:GetResources",
+      "cloudwatch:GetMetricData",
+      "cloudwatch:GetMetricStatistics",
+      "cloudwatch:ListMetrics",
+      "apigateway:GET",
+      "aps:ListWorkspaces",
+      "autoscaling:DescribeAutoScalingGroups",
+      "dms:DescribeReplicationInstances",
+      "dms:DescribeReplicationTasks",
+      "ec2:DescribeTransitGatewayAttachments",
+      "ec2:DescribeSpotFleetRequests",
+      "shield:ListProtections",
+      "storagegateway:ListGateways",
+      "storagegateway:ListTagsForResource",
+      "iam:ListAccountAliases"
+    ]
+    resources = ["*"]
+  }
+}
+resource "aws_iam_policy" "yace" {
+  name        = "${var.cluster_name}-yace"
+  path        = "/"
+  description = "Policy for yace in ${var.cluster_name}"
+  policy      = data.aws_iam_policy_document.yace.json
 }
