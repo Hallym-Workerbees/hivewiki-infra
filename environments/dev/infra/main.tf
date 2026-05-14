@@ -830,7 +830,7 @@ module "loki_ruler_bucket" {
 
 data "aws_iam_policy_document" "loki" {
   statement {
-    sid    = "Allow access for loki"
+    sid    = "AllowS3ForLoki"
     effect = "Allow"
     actions = [
       "s3:ListBucket",
