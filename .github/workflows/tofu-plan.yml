@@ -8,6 +8,9 @@ on:
       - "**/*.tf"
       - "**/*.tfvars"
       - ".terraform.lock.hcl"
+      - "environments/dev/infra/lambda/**"
+      - "environments/dev/infra/scripts/build_lambdas.sh"
+      - ".github/workflows/tofu-plan.yml"
 
 permissions:
   contents: read
@@ -49,6 +52,12 @@ jobs:
 
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@fc711fa910b93cba0f3fbecaafc9f42fd0c411cb # 2.0.0
+
+      - name: Set up Python
+        if: matrix.env == 'dev'
+        uses: actions/setup-python@42375524ee3024772b491695504333002d88d40a # 5.4.0
+        with:
+          python-version: "3.12"
 
       - name: Build Lambda package
         if: matrix.env == 'dev'

@@ -521,10 +521,27 @@ resource "aws_sfn_state_machine" "hibernate" {
 # Initial slack message #
 #########################
 
+resource "terraform_data" "build_lambdas" {
+  triggers_replace = {
+    build_script_hash = filesha256("${path.module}/scripts/build_lambdas.sh")
+    source_hashes = sha256(join(",", [
+      for file in sort(tolist(fileset("${path.module}/lambda", "**"))) :
+      filesha256("${path.module}/lambda/${file}")
+    ]))
+  }
+
+  provisioner "local-exec" {
+    command     = "./scripts/build_lambdas.sh"
+    working_dir = path.module
+  }
+}
+
 data "archive_file" "hibernate_start" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda/hibernate_start"
+  source_dir  = "${path.module}/.build/lambda/hibernate_start"
   output_path = "${path.module}/.build/lambda/hibernate_start.zip"
+
+  depends_on = [terraform_data.build_lambdas]
 }
 
 resource "aws_iam_role" "hive_hibernate_slackbot" {
@@ -595,8 +612,10 @@ resource "aws_lambda_function" "hibernate_start" {
 
 data "archive_file" "flush_elasticache" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda/flush_elasticache"
-  output_path = "${path.module}/.build/lambda/flust_elasticache.zip"
+  source_dir  = "${path.module}/.build/lambda/flush_elasticache"
+  output_path = "${path.module}/.build/lambda/flush_elasticache.zip"
+
+  depends_on = [terraform_data.build_lambdas]
 }
 
 resource "aws_iam_role" "flush_elasticache" {
@@ -824,8 +843,10 @@ resource "aws_iam_role_policy" "hibernate_network_codebuild_permissions" {
 ############################
 data "archive_file" "hibernate_complete" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda/hibernate_complete"
+  source_dir  = "${path.module}/.build/lambda/hibernate_complete"
   output_path = "${path.module}/.build/lambda/hibernate_complete.zip"
+
+  depends_on = [terraform_data.build_lambdas]
 }
 
 resource "aws_lambda_function" "hibernate_complete" {
@@ -1308,8 +1329,10 @@ resource "aws_sfn_state_machine" "reboot" {
 
 data "archive_file" "reboot_start" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda/reboot_start"
+  source_dir  = "${path.module}/.build/lambda/reboot_start"
   output_path = "${path.module}/.build/lambda/reboot_start.zip"
+
+  depends_on = [terraform_data.build_lambdas]
 }
 
 resource "aws_lambda_function" "reboot_start" {
@@ -1468,8 +1491,10 @@ resource "aws_iam_role_policy" "reboot_network_codebuild_permissions" {
 
 data "archive_file" "reboot_complete" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda/reboot_complete"
+  source_dir  = "${path.module}/.build/lambda/reboot_complete"
   output_path = "${path.module}/.build/lambda/reboot_complete.zip"
+
+  depends_on = [terraform_data.build_lambdas]
 }
 
 resource "aws_lambda_function" "reboot_complete" {
