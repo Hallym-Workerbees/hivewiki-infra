@@ -55,7 +55,7 @@ jobs:
 
       - name: Set up Python
         if: matrix.env == 'dev'
-        uses: actions/setup-python@42375524ee3024772b491695504333002d88d40a # 5.4.0
+        uses: actions/setup-python@c8813ba1bc76ebf779b911ad8ffccbf2e449cb48 # 6.2.0
         with:
           python-version: "3.12"
 
