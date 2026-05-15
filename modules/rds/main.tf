@@ -44,6 +44,14 @@ resource "aws_db_instance" "db" {
   deletion_protection        = false
   copy_tags_to_snapshot      = true
 
+  enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
+
   skip_final_snapshot = true
   apply_immediately   = var.apply_immediately
+}
+
+resource "aws_cloudwatch_log_group" "db" {
+  name = "/aws/rds/instance/${var.db_identifier}/postgresql"
+
+  retention_in_days = var.log_retention_in_days
 }

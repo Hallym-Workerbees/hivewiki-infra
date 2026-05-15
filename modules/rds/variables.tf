@@ -88,3 +88,13 @@ variable "apply_immediately" {
   description = "Whether to apply immediately"
   type        = bool
 }
+
+variable "enabled_cloudwatch_logs_exports" {
+  description = "Set of log types to enable"
+  type        = list(string)
+}
+
+variable "log_retention_in_days" {
+  description = "Log retention period in days"
+  type        = number
+}

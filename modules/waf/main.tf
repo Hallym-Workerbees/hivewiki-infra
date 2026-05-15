@@ -184,3 +184,20 @@ resource "aws_wafv2_web_acl" "alb" {
     sampled_requests_enabled   = true
   }
 }
+
+resource "aws_wafv2_web_acl_logging_configuration" "alb" {
+  count = length(var.log_destination_configs) > 0 ? 1 : 0
+
+  resource_arn            = aws_wafv2_web_acl.alb.arn
+  log_destination_configs = var.log_destination_configs
+
+  dynamic "redacted_fields" {
+    for_each = var.redacted_single_headers
+
+    content {
+      single_header {
+        name = redacted_fields.value
+      }
+    }
+  }
+}

@@ -49,3 +49,7 @@ output "loki_chunk_bucket_name" {
 output "loki_ruler_bucket_name" {
   value = module.loki_ruler_bucket.bucket_name
 }
+
+output "alb_bucket_name" {
+  value = module.alb_logging.bucket_name
+}
