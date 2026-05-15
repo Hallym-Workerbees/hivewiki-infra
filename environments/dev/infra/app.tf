@@ -18,7 +18,9 @@ locals {
 module "web_cloudfront_s3_bucket" {
   source = "../../../modules/s3-cloudfront"
 
-  bucket_name = "hivewiki-statics-dev"
+
+  allowed_origins = var.web_s3_allowed_origins
+  bucket_name     = "hivewiki-statics-dev"
 
   enable_custom_domain = true
   zone_id              = data.terraform_remote_state.shared.outputs.route53_zone_id

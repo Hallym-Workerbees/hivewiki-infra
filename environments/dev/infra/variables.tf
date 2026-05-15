@@ -106,3 +106,12 @@ variable "web_sa" {
   type        = string
   default     = "hivewiki-web-dev"
 }
+
+variable "web_s3_allowed_origins" {
+  description = "List of allowed origins for web's S3 bucket"
+  type        = list(string)
+  default = [
+    "https://test.hive-wiki.com",
+    "https://hive-wiki.com"
+  ]
+}

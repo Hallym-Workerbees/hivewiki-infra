@@ -80,3 +80,9 @@ variable "acm_certificate_arn" {
     error_message = "acm_certificate_arn can be used only when enable_custom_domain is true."
   }
 }
+
+variable "allowed_origins" {
+  description = "List of allowed origins for CORS"
+  type        = list(string)
+  default     = []
+}
