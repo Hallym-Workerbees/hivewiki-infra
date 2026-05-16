@@ -115,3 +115,15 @@ variable "web_s3_allowed_origins" {
     "https://hive-wiki.com"
   ]
 }
+
+variable "log_retention_in_days" {
+  description = "Log retention in days"
+  type        = number
+  default     = 7
+}
+
+variable "enable_cloudwatch_log_archiving" {
+  description = "Whether to archive cloudwatch logs"
+  type        = bool
+  default     = false
+}

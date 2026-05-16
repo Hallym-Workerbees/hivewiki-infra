@@ -60,3 +60,9 @@ variable "web_sa" {
   type        = string
   default     = "hivewiki-web-prod"
 }
+
+variable "log_retention_in_days" {
+  description = "Log retention in days"
+  type        = number
+  default     = 30
+}

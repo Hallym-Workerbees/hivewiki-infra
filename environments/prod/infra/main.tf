@@ -122,6 +122,19 @@ locals {
       namespace       = "monitoring"
       service_account = "loki"
     }
+
+    yace = {
+      role_name = "${var.cluster_name}-yace"
+      policies = [
+        {
+          name = aws_iam_policy.yace.name
+          arn  = aws_iam_policy.yace.arn
+        }
+      ]
+      namespace       = "monitoring"
+      service_account = "yace"
+    }
+
   }
 }
 
@@ -275,8 +288,16 @@ module "eks_cluster" {
   subnet_ids         = module.vpc.private_subnet_ids
   private_mode       = local.eks_private_mode
 
-  enabled_cluster_log_types = []
-  cp_scaling_tier           = "standard"
+  enabled_cluster_log_types = [
+    "api",
+    "audit",
+    "authenticator",
+    "controllerManager",
+    "scheduler"
+  ]
+  log_retention_in_days = var.log_retention_in_days
+
+  cp_scaling_tier = "standard"
 }
 
 ######################
@@ -428,6 +449,9 @@ module "rds" {
   db_username = "hivewiki"
   db_password = var.db_password
   db_name     = "hivewiki"
+
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+  log_retention_in_days           = var.log_retention_in_days
 
   backup_retention_period = 3
   backup_window           = "22:00-23:00"
@@ -837,6 +861,20 @@ resource "aws_iam_policy" "external_dns" {
 #######
 # WAF #
 #######
+module "waf_logging" {
+  source      = "../../../modules/s3-archive"
+  bucket_name = "aws-waf-logs-${var.cluster_name}"
+  bucket_lifecycle_rules = {
+    daily = {
+      enabled         = true
+      id              = "waf-log-retention"
+      prefix          = ""
+      transitions     = []
+      expiration_days = var.log_retention_in_days
+    }
+  }
+}
+
 module "waf" {
   source = "../../../modules/waf"
 
@@ -844,6 +882,9 @@ module "waf" {
   rate_limit             = 5000
   rate_limit_eval_window = 300
   waf_rule_action        = var.waf_rule_action
+  log_destination_configs = [
+    module.waf_logging.bucket_arn
+  ]
 }
 
 ########################
@@ -931,4 +972,98 @@ resource "aws_iam_policy" "loki" {
   path        = "/"
   description = "Policy for loki in ${var.cluster_name}"
   policy      = data.aws_iam_policy_document.loki.json
+}
+
+########
+# YACE #
+########
+data "aws_iam_policy_document" "yace" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "tag:GetResources",
+      "cloudwatch:GetMetricData",
+      "cloudwatch:GetMetricStatistics",
+      "cloudwatch:ListMetrics",
+      "apigateway:GET",
+      "aps:ListWorkspaces",
+      "autoscaling:DescribeAutoScalingGroups",
+      "dms:DescribeReplicationInstances",
+      "dms:DescribeReplicationTasks",
+      "ec2:DescribeTransitGatewayAttachments",
+      "ec2:DescribeSpotFleetRequests",
+      "shield:ListProtections",
+      "storagegateway:ListGateways",
+      "storagegateway:ListTagsForResource",
+      "iam:ListAccountAliases"
+    ]
+    resources = ["*"]
+  }
+}
+resource "aws_iam_policy" "yace" {
+  name        = "${var.cluster_name}-yace"
+  path        = "/"
+  description = "Policy for yace in ${var.cluster_name}"
+  policy      = data.aws_iam_policy_document.yace.json
+}
+
+####################
+# S3 (ALB Logging) #
+####################
+module "alb_logging" {
+  source      = "../../../modules/s3-archive"
+  bucket_name = "${var.cluster_name}-alb-gw-logs"
+  bucket_lifecycle_rules = {
+    daily = {
+      enabled         = true
+      id              = "daily-backup-retention"
+      prefix          = ""
+      transitions     = []
+      expiration_days = var.log_retention_in_days
+    }
+  }
+}
+
+##############
+# Log Backup #
+##############
+module "log_archive_bucket" {
+  source = "../../../modules/s3-archive"
+
+  bucket_name = "${var.cluster_name}-log-archive"
+  bucket_lifecycle_rules = {
+    daily = {
+      enabled = true
+      id      = "daily-backup-retention"
+      prefix  = ""
+      transitions = [
+        {
+          days          = 30
+          storage_class = "STANDARD_IA"
+        },
+        {
+          days          = 90
+          storage_class = "DEEP_ARCHIVE"
+        }
+      ]
+    }
+  }
+}
+
+module "log_archiving" {
+  source = "../../../modules/log_archiving"
+
+  firehose_name = "${var.cluster_name}-log-archive"
+  bucket_arn    = module.log_archive_bucket.bucket_arn
+
+  log_groups = {
+    eks_api = {
+      subscription_filter_name = "${var.cluster_name}-eks-api-archive"
+      log_group_name           = module.eks_cluster.log_group_name
+    }
+    rds_postgresql = {
+      subscription_filter_name = "${var.cluster_name}-rds-postgresql-archive"
+      log_group_name           = module.rds.log_group_name
+    }
+  }
 }
