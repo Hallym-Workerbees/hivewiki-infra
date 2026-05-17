@@ -720,6 +720,50 @@ resource "aws_iam_policy" "lbc" {
   policy = data.aws_iam_policy_document.lbc.json
 }
 
+data "aws_iam_policy_document" "lbc_s3" {
+  statement {
+    sid    = "AllowS3ForLBC"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DeleteObject"
+    ]
+    resources = [
+      module.lbc_s3_bucket.bucket_arn,
+      "${module.lbc_s3_bucket.bucket_arn}/*",
+      module.lbc_s3_bucket.bucket_arn,
+      "${module.lbc_s3_bucket.bucket_arn}/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "lbc_s3" {
+  name        = "${var.cluster_name}-lbc-s3"
+  path        = "/"
+  description = "Policy for load balancer controller's s3 access in ${var.cluster_name}"
+  policy      = data.aws_iam_policy_document.lbc_s3.json
+}
+
+module "lbc_s3_bucket" {
+  source      = "../../../modules/s3-archive"
+  bucket_name = "${var.cluster_name}-alb-gw-logs"
+  bucket_lifecycle_rules = {
+    daily = {
+      enabled = true
+      id      = "daily-backup-retention"
+      prefix  = ""
+      transitions = [
+        {
+          days          = 30
+          storage_class = "STANDARD_IA"
+        }
+      ]
+      expiration_days = 90
+    }
+  }
+}
 
 #############################
 # IAM Role for external-dns #
