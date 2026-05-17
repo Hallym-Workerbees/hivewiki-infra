@@ -51,3 +51,8 @@ variable "enabled_cluster_log_types" {
     error_message = "enabled_cluster_log_types must contain only valid EKS control plane log types."
   }
 }
+
+variable "log_retention_in_days" {
+  description = "EKS Control Plane retention in days"
+  type        = number
+}
