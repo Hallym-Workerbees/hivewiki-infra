@@ -1,6 +1,8 @@
 ############################
 # Remote State from shared #
 ############################
+data "aws_caller_identity" "current" {}
+
 data "terraform_remote_state" "shared" {
   backend = "s3"
   config = {
@@ -118,10 +120,12 @@ locals {
 
     load_balancer_controller = {
       role_name = "${var.cluster_name}-load-balancer-controller"
-      policies = [{
-        name = "${var.cluster_name}-load-balancer-controller"
-        arn  = aws_iam_policy.lbc.arn
-      }]
+      policies = [
+        {
+          name = "${var.cluster_name}-load-balancer-controller"
+          arn  = aws_iam_policy.lbc.arn
+        },
+      ]
       namespace       = "kube-system"
       service_account = "aws-load-balancer-controller"
     }
@@ -729,47 +733,37 @@ resource "aws_iam_policy" "lbc" {
   policy = data.aws_iam_policy_document.lbc.json
 }
 
-data "aws_iam_policy_document" "lbc_s3" {
+data "aws_iam_policy_document" "alb_logging" {
   statement {
-    sid    = "AllowS3ForLBC"
+    sid    = "AllowALBLogDelivery"
     effect = "Allow"
-    actions = [
-      "s3:ListBucket",
-      "s3:PutObject",
-      "s3:GetObject",
-      "s3:DeleteObject"
-    ]
+
+    principals {
+      type        = "Service"
+      identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
+    }
+
+    actions = ["s3:PutObject"]
     resources = [
-      module.lbc_s3_bucket.bucket_arn,
-      "${module.lbc_s3_bucket.bucket_arn}/*",
-      module.lbc_s3_bucket.bucket_arn,
-      "${module.lbc_s3_bucket.bucket_arn}/*"
+      "arn:aws:s3:::${var.cluster_name}-alb-gw-logs/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
     ]
   }
 }
 
-resource "aws_iam_policy" "lbc_s3" {
-  name        = "${var.cluster_name}-lbc-s3"
-  path        = "/"
-  description = "Policy for load balancer controller's s3 access in ${var.cluster_name}"
-  policy      = data.aws_iam_policy_document.lbc_s3.json
-}
-
-module "lbc_s3_bucket" {
-  source      = "../../../modules/s3-archive"
-  bucket_name = "${var.cluster_name}-alb-gw-logs"
+####################
+# S3 (ALB Logging) #
+####################
+module "alb_logging" {
+  source             = "../../../modules/s3-archive"
+  bucket_name        = "${var.cluster_name}-alb-gw-logs"
+  bucket_policy_json = data.aws_iam_policy_document.alb_logging.json
   bucket_lifecycle_rules = {
     daily = {
-      enabled = true
-      id      = "daily-backup-retention"
-      prefix  = ""
-      transitions = [
-        {
-          days          = 30
-          storage_class = "STANDARD_IA"
-        }
-      ]
-      expiration_days = 90
+      enabled         = true
+      id              = "daily-backup-retention"
+      prefix          = ""
+      transitions     = []
+      expiration_days = var.log_retention_in_days
     }
   }
 }
@@ -955,23 +949,6 @@ resource "aws_iam_policy" "yace" {
   path        = "/"
   description = "Policy for yace in ${var.cluster_name}"
   policy      = data.aws_iam_policy_document.yace.json
-}
-
-####################
-# S3 (ALB Logging) #
-####################
-module "alb_logging" {
-  source      = "../../../modules/s3-archive"
-  bucket_name = "${var.cluster_name}-alb-gw-logs"
-  bucket_lifecycle_rules = {
-    daily = {
-      enabled         = true
-      id              = "daily-backup-retention"
-      prefix          = ""
-      transitions     = []
-      expiration_days = var.log_retention_in_days
-    }
-  }
 }
 
 ##############

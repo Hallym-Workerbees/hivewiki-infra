@@ -1,5 +1,3 @@
-data "aws_caller_identity" "current" {}
-
 locals {
   rds_db_identifier = module.rds.db_identifier
 }

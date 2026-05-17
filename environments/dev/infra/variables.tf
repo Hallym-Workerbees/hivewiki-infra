@@ -125,5 +125,5 @@ variable "log_retention_in_days" {
 variable "enable_cloudwatch_log_archiving" {
   description = "Whether to archive cloudwatch logs"
   type        = bool
-  default     = false
+  default     = true
 }
