@@ -1,6 +1,8 @@
 ###########################
 # Load availability zones #
 ###########################
+data "aws_caller_identity" "current" {}
+
 data "aws_availability_zones" "seoul" {
   filter {
     name   = "opt-in-status"
@@ -823,6 +825,40 @@ resource "aws_iam_policy" "lbc" {
   policy = data.aws_iam_policy_document.lbc.json
 }
 
+data "aws_iam_policy_document" "alb_logging" {
+  statement {
+    sid    = "AllowALBLogDelivery"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
+    }
+
+    actions = ["s3:PutObject"]
+    resources = [
+      "arn:aws:s3:::${var.cluster_name}-alb-gw-logs/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+    ]
+  }
+}
+
+####################
+# S3 (ALB Logging) #
+####################
+module "alb_logging" {
+  source             = "../../../modules/s3-archive"
+  bucket_name        = "${var.cluster_name}-alb-gw-logs"
+  bucket_policy_json = data.aws_iam_policy_document.alb_logging.json
+  bucket_lifecycle_rules = {
+    daily = {
+      enabled         = true
+      id              = "daily-backup-retention"
+      prefix          = ""
+      transitions     = []
+      expiration_days = var.log_retention_in_days
+    }
+  }
+}
 
 #############################
 # IAM Role for external-dns #
@@ -1005,23 +1041,6 @@ resource "aws_iam_policy" "yace" {
   path        = "/"
   description = "Policy for yace in ${var.cluster_name}"
   policy      = data.aws_iam_policy_document.yace.json
-}
-
-####################
-# S3 (ALB Logging) #
-####################
-module "alb_logging" {
-  source      = "../../../modules/s3-archive"
-  bucket_name = "${var.cluster_name}-alb-gw-logs"
-  bucket_lifecycle_rules = {
-    daily = {
-      enabled         = true
-      id              = "daily-backup-retention"
-      prefix          = ""
-      transitions     = []
-      expiration_days = var.log_retention_in_days
-    }
-  }
 }
 
 ##############

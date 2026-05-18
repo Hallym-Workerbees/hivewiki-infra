@@ -47,6 +47,13 @@ resource "aws_s3_bucket_ownership_controls" "backup_bucket_ownership" {
   }
 }
 
+resource "aws_s3_bucket_policy" "backup_bucket_policy" {
+  count = var.bucket_policy_json != null ? 1 : 0
+
+  bucket = aws_s3_bucket.backup_bucket.id
+  policy = var.bucket_policy_json
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "backup_bucket_lifecycle" {
   count = length(local.enabled_bucket_lifecycle_rules) > 0 ? 1 : 0
 

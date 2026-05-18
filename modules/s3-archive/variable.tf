@@ -17,3 +17,9 @@ variable "bucket_lifecycle_rules" {
   }))
   default = {}
 }
+
+variable "bucket_policy_json" {
+  description = "Optional bucket policy JSON to attach to the bucket"
+  type        = string
+  default     = null
+}
