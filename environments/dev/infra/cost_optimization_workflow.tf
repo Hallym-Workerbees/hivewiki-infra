@@ -527,12 +527,6 @@ data "aws_iam_policy_document" "hibernate_sched" {
   }
 }
 
-resource "aws_iam_policy" "hibernate_sched" {
-  name = "${var.cluster_name}-hibernate-sched"
-
-  policy = data.aws_iam_policy_document.hibernate_sched.json
-}
-
 resource "aws_iam_role" "hibernate_sched" {
   name = "${var.cluster_name}-hibernate-sched"
   assume_role_policy = jsonencode({
@@ -549,6 +543,12 @@ resource "aws_iam_role" "hibernate_sched" {
       }
     ]
   })
+}
+
+resource "aws_iam_role_policy" "hibernate_sched" {
+  name   = "${var.cluster_name}-hibernate-sched"
+  role   = aws_iam_role.hibernate_sched.id
+  policy = data.aws_iam_policy_document.hibernate_sched.json
 }
 
 resource "aws_scheduler_schedule" "hibernate_sched" {
@@ -1390,12 +1390,6 @@ data "aws_iam_policy_document" "reboot_sched" {
   }
 }
 
-resource "aws_iam_policy" "reboot_sched" {
-  name = "${var.cluster_name}-reboot-sched"
-
-  policy = data.aws_iam_policy_document.reboot_sched.json
-}
-
 resource "aws_iam_role" "reboot_sched" {
   name = "${var.cluster_name}-reboot-sched"
   assume_role_policy = jsonencode({
@@ -1412,6 +1406,12 @@ resource "aws_iam_role" "reboot_sched" {
       }
     ]
   })
+}
+
+resource "aws_iam_role_policy" "reboot_sched" {
+  name   = "${var.cluster_name}-reboot-sched"
+  role   = aws_iam_role.reboot_sched.id
+  policy = data.aws_iam_policy_document.reboot_sched.json
 }
 
 resource "aws_scheduler_schedule" "reboot_sched" {
