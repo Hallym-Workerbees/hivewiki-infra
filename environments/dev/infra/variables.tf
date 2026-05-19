@@ -127,3 +127,15 @@ variable "enable_cloudwatch_log_archiving" {
   type        = bool
   default     = true
 }
+
+variable "hibernate_sched_cron" {
+  description = "Cron schedule for Hibernate SFN"
+  type        = string
+  default     = "0 1 ? * TUE-SAT *"
+}
+
+variable "reboot_sched_cron" {
+  description = "Cron schedule for Reboot SFN"
+  type        = string
+  default     = "0 17 ? * MON-FRI *"
+}

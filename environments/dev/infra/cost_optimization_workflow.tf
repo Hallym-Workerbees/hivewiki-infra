@@ -515,6 +515,59 @@ resource "aws_sfn_state_machine" "hibernate" {
   })
 }
 
+data "aws_iam_policy_document" "hibernate_sched" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "states:StartExecution"
+    ]
+    resources = [
+      aws_sfn_state_machine.hibernate.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "hibernate_sched" {
+  name = "${var.cluster_name}-hibernate-sched"
+
+  policy = data.aws_iam_policy_document.hibernate_sched.json
+}
+
+resource "aws_iam_role" "hibernate_sched" {
+  name = "${var.cluster_name}-hibernate-sched"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "scheduler.amazonaws.com"
+        },
+        Action = [
+          "sts:AssumeRole"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_scheduler_schedule" "hibernate_sched" {
+  name = "${var.cluster_name}-hibernate-schedule"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression_timezone = "Asia/Seoul"
+  schedule_expression          = "cron(${var.hibernate_sched_cron})"
+
+  target {
+    arn      = aws_sfn_state_machine.hibernate.arn
+    role_arn = aws_iam_role.hibernate_sched.arn
+    input    = jsonencode({})
+  }
+}
+
 #########################
 # Initial slack message #
 #########################
@@ -1323,6 +1376,59 @@ resource "aws_sfn_state_machine" "reboot" {
       }
     }
   })
+}
+
+data "aws_iam_policy_document" "reboot_sched" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "states:StartExecution"
+    ]
+    resources = [
+      aws_sfn_state_machine.reboot.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "reboot_sched" {
+  name = "${var.cluster_name}-reboot-sched"
+
+  policy = data.aws_iam_policy_document.reboot_sched.json
+}
+
+resource "aws_iam_role" "reboot_sched" {
+  name = "${var.cluster_name}-reboot-sched"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "scheduler.amazonaws.com"
+        },
+        Action = [
+          "sts:AssumeRole"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_scheduler_schedule" "reboot_sched" {
+  name = "${var.cluster_name}-reboot-schedule"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression_timezone = "Asia/Seoul"
+  schedule_expression          = "cron(${var.reboot_sched_cron})"
+
+  target {
+    arn      = aws_sfn_state_machine.reboot.arn
+    role_arn = aws_iam_role.reboot_sched.arn
+    input    = jsonencode({})
+  }
 }
 
 data "archive_file" "reboot_start" {
