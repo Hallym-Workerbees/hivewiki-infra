@@ -41,22 +41,22 @@ variable "eks_node_group_max_size" {
 
 variable "hibernate_ng_polling_period_seconds" {
   type    = number
-  default = 15
+  default = 30
 }
 
 variable "hibernate_db_instance_polling_period_seconds" {
   type    = number
-  default = 15
+  default = 30
 }
 
 variable "reboot_db_instance_polling_period_seconds" {
   type    = number
-  default = 15
+  default = 30
 }
 
 variable "reboot_ng_polling_period_seconds" {
   type    = number
-  default = 15
+  default = 30
 }
 
 variable "reboot_ng_post_scale_up_wait_seconds" {
