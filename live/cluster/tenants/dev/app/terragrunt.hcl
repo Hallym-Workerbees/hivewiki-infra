@@ -45,4 +45,6 @@ inputs = {
   web_ns                          = "hivewiki-web-dev"
   web_sa                          = "hivewiki-web-dev"
   cloudfront_custom_domains       = ["attachment.hive-wiki.com"]
+  web_s3_allowed_origins = ["https://test.hive-wiki.com", "https://hive-wiki.com"]
+
 }

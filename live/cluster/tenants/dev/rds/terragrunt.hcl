@@ -46,4 +46,5 @@ inputs = {
   enabled_cloudwatch_logs_exports = ["postgresql"]
   log_retention_in_days     = 7
   db_password               = get_env("TF_VAR_db_password", "mock-db-password-for-validate")
+  multi_az = false
 }

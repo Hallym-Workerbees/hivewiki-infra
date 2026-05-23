@@ -41,4 +41,6 @@ inputs = {
   vpc_id                    = dependency.vpc.outputs.vpc_id
   subnet_ids                = dependency.vpc.outputs.db_subnet_ids
   allowed_security_group_id = dependency.infra.outputs.cluster_security_group_id
+  max_cache_usage = 3
+  ecpu_per_second = 3000
 }
