@@ -7,7 +7,7 @@ LIVE_DIR="$REPO_ROOT/live"
 LOGGING_DIR="$LIVE_DIR/cluster/logging"
 
 usage() {
-  cat <<'EOF'
+    cat <<'EOF'
 Usage:
   bash scripts/run-dev-only.sh plan
   bash scripts/run-dev-only.sh apply
@@ -20,16 +20,15 @@ EOF
 }
 
 if [ $# -ne 1 ]; then
-  usage
-  exit 1
+    usage
+    exit 1
 fi
 
 COMMAND="$1"
 
 case "$COMMAND" in
-  plan|apply)
-    ;;
-  *)
+plan | apply) ;;
+*)
     echo "Unsupported command: $COMMAND" >&2
     usage
     exit 1
@@ -38,15 +37,15 @@ esac
 
 echo "[INFO] Running shared/dev units from $LIVE_DIR"
 (
-  cd "$LIVE_DIR"
-  terragrunt run --all \
-    --queue-exclude-dir 'cluster/tenants/prod/**' \
-    --queue-exclude-dir 'cluster/logging' \
-    -- "$COMMAND"
+    cd "$LIVE_DIR"
+    terragrunt run --all \
+        --queue-exclude-dir 'cluster/tenants/prod/**' \
+        --queue-exclude-dir 'cluster/logging' \
+        -- "$COMMAND"
 )
 
 echo "[INFO] Running logging separately from $LOGGING_DIR"
 (
-  cd "$LOGGING_DIR"
-  terragrunt "$COMMAND"
+    cd "$LOGGING_DIR"
+    terragrunt "$COMMAND"
 )

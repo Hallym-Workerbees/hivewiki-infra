@@ -198,6 +198,11 @@ resource "helm_release" "cilium" {
       routingMode          = "native"
       enableIPv4Masquerade = false
       enableIPv6Masquerade = false
+      nodeSelector = {
+        "kubernetes.io/os" = "linux"
+        env                = "shared"
+        workload           = "system"
+      }
       prometheus = {
         enabled = true
         port    = 9962
@@ -242,6 +247,10 @@ resource "helm_release" "metrics_server" {
   create_namespace = true
   values = [
     yamlencode({
+      nodeSelector = {
+        env      = "shared"
+        workload = "system"
+      }
       image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/k8s/metrics-server/metrics-server" }
     })
   ]
@@ -260,9 +269,16 @@ resource "helm_release" "argocd" {
   values = [
     yamlencode({
       server = { extraArgs = ["--insecure"] }
-      global = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd" } }
-      dex    = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ghcr/dexidp/dex" } }
-      redis  = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/docker/library/redis" } }
+      global = {
+        nodeSelector = {
+          "kubernetes.io/os" = "linux"
+          env                = "shared"
+          workload           = "system"
+        }
+        image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd" }
+      }
+      dex   = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ghcr/dexidp/dex" } }
+      redis = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/docker/library/redis" } }
     })
   ]
 }
@@ -280,6 +296,11 @@ resource "helm_release" "karpenter" {
   values = [
     yamlencode({
       replicas = 1
+      nodeSelector = {
+        "kubernetes.io/os" = "linux"
+        env                = "shared"
+        workload           = "system"
+      }
       settings = {
         clusterName       = var.cluster_name
         interruptionQueue = var.interruption_handling_queue
@@ -330,6 +351,10 @@ resource "helm_release" "lbc" {
       image            = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/eks/aws-load-balancer-controller" }
       serviceAccount   = { create = true, name = "aws-load-balancer-controller" }
       controllerConfig = { featureGates = { ALBGatewayAPI = true } }
+      nodeSelector = {
+        env      = "shared"
+        workload = "system"
+      }
     })
   ]
 }
@@ -365,6 +390,12 @@ resource "helm_release" "cert_manager" {
       cainjector      = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/jetstack/cert-manager-cainjector" } }
       acmesolver      = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/jetstack/cert-manager-acmesolver" } }
       startupapicheck = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/jetstack/cert-manager-startupapicheck" } }
+      global = {
+        nodeSelector = {
+          env      = "shared"
+          workload = "system"
+        }
+      }
     })
   ]
 }

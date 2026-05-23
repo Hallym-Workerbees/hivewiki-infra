@@ -179,7 +179,10 @@ module "eks_node_group" {
     max_size     = var.eks_node_group_max_size
   }
 
-  labels = { dedicated = "infra" }
+  labels = {
+    env      = "shared"
+    workload = "system"
+  }
   taints = {}
 
   role_policy_attachment = [
