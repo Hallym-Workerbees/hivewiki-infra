@@ -1,4 +1,4 @@
-name: OpenTofu Plan
+name: Terragrunt Plan
 
 on:
   pull_request:
@@ -6,10 +6,10 @@ on:
       - main
     paths:
       - "**/*.tf"
+      - "**/*.hcl"
       - "**/*.tfvars"
       - ".terraform.lock.hcl"
-      - "environments/dev/infra/lambda/**"
-      - "environments/dev/infra/scripts/build_lambdas.sh"
+      - "live/**/lambda/**"
       - ".github/workflows/tofu-plan.yml"
 
 permissions:
@@ -24,14 +24,34 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - working_directory: environments/dev/infra
-            env: dev
-
-          - working_directory: environments/prod/infra
-            env: prod
-
-          - working_directory: environments/shared
-            env: shared
+          - stack: shared
+            working_directory: live/shared
+          - stack: cluster-vpc
+            working_directory: live/cluster/vpc
+          - stack: cluster-observability
+            working_directory: live/cluster/observability
+          - stack: cluster-infra
+            working_directory: live/cluster/infra
+          - stack: cluster-edge
+            working_directory: live/cluster/edge
+          - stack: cluster-eks-addons
+            working_directory: live/cluster/eks-addons
+          - stack: tenant-dev-app
+            working_directory: live/cluster/tenants/dev/app
+          - stack: tenant-dev-cache
+            working_directory: live/cluster/tenants/dev/cache
+          - stack: tenant-dev-rds
+            working_directory: live/cluster/tenants/dev/rds
+          - stack: tenant-dev-ops
+            working_directory: live/cluster/tenants/dev/ops
+          - stack: tenant-prod-app
+            working_directory: live/cluster/tenants/prod/app
+          - stack: tenant-prod-cache
+            working_directory: live/cluster/tenants/prod/cache
+          - stack: tenant-prod-rds
+            working_directory: live/cluster/tenants/prod/rds
+          - stack: cluster-logging
+            working_directory: live/cluster/logging
 
     defaults:
       run:
@@ -41,10 +61,13 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      TG_NON_INTERACTIVE: "true"
+      TF_INPUT: "false"
       TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
       TF_VAR_dockerhub_access_token: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
       TF_VAR_ghcr_username: ${{ secrets.GHCR_USERNAME }}
       TF_VAR_ghcr_access_token: ${{ secrets.GHCR_ACCESS_TOKEN }}
+      TF_VAR_db_password: ${{ startsWith(matrix.stack, 'tenant-dev-') && secrets.DEV_DB_PASSWORD || startsWith(matrix.stack, 'tenant-prod-') && secrets.PROD_DB_PASSWORD || '' }}
 
     steps:
       - name: Checkout
@@ -53,31 +76,13 @@ jobs:
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@fc711fa910b93cba0f3fbecaafc9f42fd0c411cb # 2.0.0
 
-      - name: Set up Python
-        if: matrix.env == 'dev'
-        uses: actions/setup-python@c8813ba1bc76ebf779b911ad8ffccbf2e449cb48 # 6.2.0
-        with:
-          python-version: "3.12"
+      - name: Set up Terragrunt
+        run: |
+          TG_VERSION="$(curl -fsSL https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | jq -r '.tag_name')"
+          curl -fsSL -o terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/${TG_VERSION}/terragrunt_linux_amd64"
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/terragrunt
+          terragrunt --version
 
-      - name: Build Lambda package
-        if: matrix.env == 'dev'
-        run: scripts/build_lambdas.sh
-
-      - name: OpenTofu init
-        run: tofu init -input=false -reconfigure
-
-      - name: OpenTofu plan (dev)
-        if: matrix.env == 'dev'
-        env:
-          TF_VAR_db_password: ${{ secrets.DEV_DB_PASSWORD }}
-        run: tofu plan -no-color -input=false
-
-      - name: OpenTofu plan (prod)
-        if: matrix.env == 'prod'
-        env:
-          TF_VAR_db_password: ${{ secrets.PROD_DB_PASSWORD }}
-        run: tofu plan -no-color -input=false
-
-      - name: OpenTofu plan (shared)
-        if: matrix.env == 'shared'
-        run: tofu plan -no-color -input=false
+      - name: Terragrunt plan
+        run: terragrunt plan -no-color
