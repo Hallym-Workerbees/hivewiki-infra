@@ -42,8 +42,9 @@ inputs = {
   subnet_ids                = dependency.vpc.outputs.db_subnet_ids
   allowed_security_group_id = dependency.infra.outputs.cluster_security_group_id
   db_instance_class         = "db.t4g.large"
-  db_storage_size           = 60
+  db_storage_size           = 100
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
   log_retention_in_days     = 30
   db_password               = get_env("TF_VAR_db_password", "mock-db-password-for-validate")
+  multi_az = true
 }

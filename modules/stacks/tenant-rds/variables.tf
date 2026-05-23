@@ -11,3 +11,4 @@ variable "db_password" {
   sensitive = true
 }
 variable "log_retention_in_days" { type = number }
+variable "multi_az" { type = bool }

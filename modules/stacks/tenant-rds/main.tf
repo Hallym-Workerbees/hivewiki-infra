@@ -12,7 +12,7 @@ module "rds" {
   db_storage_size   = var.db_storage_size
   db_storage_type   = "gp3"
   db_port           = 5432
-  multi_az          = false
+  multi_az          = var.multi_az
 
   db_username = "hivewiki"
   db_password = var.db_password
