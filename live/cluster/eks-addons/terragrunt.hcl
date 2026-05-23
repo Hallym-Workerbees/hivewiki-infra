@@ -7,6 +7,10 @@ include "cluster" {
   expose = true
 }
 
+terraform {
+  source = "../../../modules//stacks/cluster-eks-addons"
+}
+
 dependency "infra" {
   config_path = "../infra"
 

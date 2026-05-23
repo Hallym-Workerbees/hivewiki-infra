@@ -12,6 +12,10 @@ include "tenant" {
   expose = true
 }
 
+terraform {
+  source = "../../../../../modules//stacks/tenant-rds"
+}
+
 dependency "vpc" {
   config_path = "../../../vpc"
 
@@ -32,12 +36,14 @@ dependency "infra" {
 }
 
 inputs = {
-  cluster_name = include.cluster.locals.cluster_name
-  resource_prefix = include.tenant.locals.resource_prefix
-  vpc_id       = dependency.vpc.outputs.vpc_id
-  subnet_ids   = dependency.vpc.outputs.db_subnet_ids
-
+  cluster_name              = include.cluster.locals.cluster_name
+  resource_prefix           = include.tenant.locals.resource_prefix
+  vpc_id                    = dependency.vpc.outputs.vpc_id
+  subnet_ids                = dependency.vpc.outputs.db_subnet_ids
   allowed_security_group_id = dependency.infra.outputs.cluster_security_group_id
-
-  db_password = get_env("TF_VAR_db_password", "mock-db-password-for-validate")
+  db_instance_class         = "db.t4g.micro"
+  db_storage_size           = 50
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+  log_retention_in_days     = 7
+  db_password               = get_env("TF_VAR_db_password", "mock-db-password-for-validate")
 }

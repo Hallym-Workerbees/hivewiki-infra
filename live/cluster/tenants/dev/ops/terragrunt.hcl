@@ -7,6 +7,10 @@ include "cluster" {
   expose = true
 }
 
+terraform {
+  source = "../../../../../modules//stacks/tenant-dev-ops"
+}
+
 dependency "vpc" {
   config_path = "../../../vpc"
 

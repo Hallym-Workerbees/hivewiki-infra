@@ -12,6 +12,10 @@ include "tenant" {
   expose = true
 }
 
+terraform {
+  source = "../../../../../modules//stacks/tenant-cache"
+}
+
 dependency "vpc" {
   config_path = "../../../vpc"
 

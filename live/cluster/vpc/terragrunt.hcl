@@ -7,6 +7,10 @@ include "cluster" {
   expose = true
 }
 
+terraform {
+  source = "../../../modules//stacks/cluster-vpc"
+}
+
 inputs = {
   cluster_name     = include.cluster.locals.cluster_name
   aws_region       = include.cluster.locals.aws_region

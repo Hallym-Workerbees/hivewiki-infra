@@ -11,4 +11,4 @@ jobs:
     with:
       scan_type: config
       scanners: misconfig
-      skip_files: third-party/gateway-api/standard-install.yaml
+      skip_files: modules/stacks/cluster-eks-addons/third-party/gateway-api/standard-install.yaml

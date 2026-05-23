@@ -7,6 +7,10 @@ include "cluster" {
   expose = true
 }
 
+terraform {
+  source = "../../../modules//stacks/cluster-observability"
+}
+
 inputs = {
   cluster_name = include.cluster.locals.cluster_name
 }

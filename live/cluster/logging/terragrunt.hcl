@@ -7,6 +7,10 @@ include "cluster" {
   expose = true
 }
 
+terraform {
+  source = "../../../modules//stacks/cluster-logging"
+}
+
 locals {
   enable_prod_rds_logging = get_env("TG_ENABLE_PROD_RDS_LOGGING", "false") == "true"
 }

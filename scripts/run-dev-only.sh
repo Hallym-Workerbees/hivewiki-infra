@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/chaewoon/dev/capstone/hivewiki-infra}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 LIVE_DIR="$REPO_ROOT/live"
 LOGGING_DIR="$LIVE_DIR/cluster/logging"
 
@@ -15,7 +16,8 @@ Usage:
 This runs all shared/dev Terragrunt units while excluding:
   - live/cluster/tenants/prod/**
 
-Then it runs live/cluster/logging separately.
+Then it runs live/cluster/logging separately because logging depends on
+other stacks and may optionally read prod RDS outputs.
 EOF
 }
 
@@ -39,6 +41,7 @@ echo "[INFO] Running shared/dev units from $LIVE_DIR"
 (
     cd "$LIVE_DIR"
     terragrunt run --all \
+        --working-dir "$LIVE_DIR" \
         --queue-exclude-dir 'cluster/tenants/prod/**' \
         --queue-exclude-dir 'cluster/logging' \
         -- "$COMMAND"

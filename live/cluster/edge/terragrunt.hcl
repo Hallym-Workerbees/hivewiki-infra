@@ -7,6 +7,10 @@ include "cluster" {
   expose = true
 }
 
+terraform {
+  source = "../../../modules//stacks/cluster-edge"
+}
+
 inputs = {
   cluster_name          = include.cluster.locals.cluster_name
   log_retention_in_days = 7

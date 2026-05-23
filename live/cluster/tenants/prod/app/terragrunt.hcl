@@ -12,6 +12,10 @@ include "tenant" {
   expose = true
 }
 
+terraform {
+  source = "../../../../../modules//stacks/tenant-app"
+}
+
 dependency "infra" {
   config_path = "../../../infra"
 

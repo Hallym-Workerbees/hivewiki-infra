@@ -12,6 +12,10 @@ include "tenant" {
   expose = true
 }
 
+terraform {
+  source = "../../../../../modules//stacks/tenant-app"
+}
+
 dependency "infra" {
   config_path = "../../../infra"
 
@@ -34,7 +38,11 @@ dependency "shared" {
 inputs = {
   cluster_name                    = include.cluster.locals.cluster_name
   resource_prefix                 = include.tenant.locals.resource_prefix
-  eks_cluster_name               = dependency.infra.outputs.eks_cluster_name
-  route53_zone_id                = dependency.shared.outputs.route53_zone_id
-  cloudfront_acm_certificate_arn = dependency.shared.outputs.cloudfront_acm_certificate_arn
+  static_bucket_name              = "hivewiki-statics-dev"
+  eks_cluster_name                = dependency.infra.outputs.eks_cluster_name
+  route53_zone_id                 = dependency.shared.outputs.route53_zone_id
+  cloudfront_acm_certificate_arn  = dependency.shared.outputs.cloudfront_acm_certificate_arn
+  web_ns                          = "hivewiki-web-dev"
+  web_sa                          = "hivewiki-web-dev"
+  cloudfront_custom_domains       = ["attachment.hive-wiki.com"]
 }
