@@ -268,17 +268,42 @@ resource "helm_release" "argocd" {
   create_namespace = true
   values = [
     yamlencode({
-      server = { extraArgs = ["--insecure"] }
-      global = {
+      server = {
+        extraArgs = ["--insecure"]
         nodeSelector = {
           "kubernetes.io/os" = "linux"
           env                = "shared"
           workload           = "system"
         }
-        image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd" }
+        metrics = { enabled = true }
       }
-      dex   = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ghcr/dexidp/dex" } }
-      redis = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/docker/library/redis" } }
+      controller = { metrics = { enabled = true } }
+      global     = { image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/argoproj/argocd" } }
+      dex = {
+        nodeSelector = {
+          "kubernetes.io/os" = "linux"
+          env                = "shared"
+          workload           = "system"
+        }
+        image   = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ghcr/dexidp/dex" }
+        metrics = { enabled = true }
+      }
+      redis = {
+        image = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/docker/library/redis" }
+        nodeSelector = {
+          "kubernetes.io/os" = "linux"
+          env                = "shared"
+          workload           = "system"
+        }
+      }
+      reposerver = {
+        nodeSelector = {
+          "kubernetes.io/os" = "linux"
+          env                = "shared"
+          workload           = "system"
+        }
+        metrics = { enabled = true }
+      }
     })
   ]
 }
@@ -316,6 +341,7 @@ resource "helm_release" "karpenter" {
           limits   = { cpu = "250m", memory = "256Mi" }
         }
       }
+      serviceMonitor = { enabled = true }
     })
   ]
 }
