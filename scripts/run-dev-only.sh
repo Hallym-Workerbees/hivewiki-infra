@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 LIVE_DIR="$REPO_ROOT/live"
 LOGGING_DIR="$LIVE_DIR/cluster/logging"
+LAMBDA_BUILD_SCRIPT="$REPO_ROOT/scripts/build-tenant-dev-ops-lambdas.sh"
 
 usage() {
     cat <<'EOF'
@@ -38,6 +39,9 @@ plan | apply) ;;
 esac
 
 echo "[INFO] Running shared/dev units from $LIVE_DIR"
+echo "[INFO] Building tenant-dev-ops lambda packages"
+bash "$LAMBDA_BUILD_SCRIPT"
+
 (
     cd "$LIVE_DIR"
     terragrunt run --all \

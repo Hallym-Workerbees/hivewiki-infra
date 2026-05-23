@@ -76,6 +76,11 @@ jobs:
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@fc711fa910b93cba0f3fbecaafc9f42fd0c411cb # 2.0.0
 
+      - name: Set up Python
+        uses: actions/setup-python@c8813ba1bc76ebf779b911ad8ffccbf2e449cb48 # 6.2.0
+        with:
+          python-version: "3.12"
+
       - name: Set up Terragrunt
         run: |
           TG_VERSION="$(curl -fsSL https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | jq -r '.tag_name')"
@@ -83,6 +88,9 @@ jobs:
           chmod +x terragrunt
           sudo mv terragrunt /usr/local/bin/terragrunt
           terragrunt --version
+
+      - name: Build tenant-dev-ops lambda packages
+        run: bash scripts/build-tenant-dev-ops-lambdas.sh
 
       - name: Terragrunt plan
         run: terragrunt plan -no-color

@@ -2,6 +2,8 @@
 .terraform/
 **/.terraform/
 **/.terragrunt-cache/
+**/lambda/**/function.zip
+modules/stacks/tenant-dev-ops/build/
 
 # .tfstate files
 *.tfstate

@@ -3,6 +3,7 @@ data "aws_caller_identity" "current" {}
 locals {
   rds_db_identifier  = var.rds_db_identifier
   lambda_root        = "${path.module}/lambda"
+  lambda_build_root  = "${path.module}/build/lambda"
   live_vpc_state_key = "live/cluster/vpc/terraform.tfstate"
 }
 
@@ -623,11 +624,11 @@ resource "aws_iam_role_policy_attachment" "start_lambda_basic_execution" {
 }
 
 resource "aws_lambda_function" "hibernate_start" {
-  filename         = "${local.lambda_root}/hibernate_start/function.zip"
+  filename         = "${local.lambda_build_root}/hibernate_start/function.zip"
   function_name    = "${var.cluster_name}-hibernate-start"
   role             = aws_iam_role.hive_hibernate_slackbot.arn
   handler          = "main.lambda_handler"
-  source_code_hash = filebase64sha256("${local.lambda_root}/hibernate_start/function.zip")
+  source_code_hash = filebase64sha256("${local.lambda_build_root}/hibernate_start/function.zip")
   runtime          = "python3.12"
 
   environment {
@@ -665,11 +666,11 @@ resource "aws_iam_role_policy_attachment" "flush_elasticache_basic_execution" {
 }
 
 resource "aws_lambda_function" "flush_elasticache" {
-  filename         = "${local.lambda_root}/flush_elasticache/function.zip"
+  filename         = "${local.lambda_build_root}/flush_elasticache/function.zip"
   function_name    = "${var.cluster_name}-flush-elasticache"
   role             = aws_iam_role.flush_elasticache.arn
   handler          = "main.lambda_handler"
-  source_code_hash = filebase64sha256("${local.lambda_root}/flush_elasticache/function.zip")
+  source_code_hash = filebase64sha256("${local.lambda_build_root}/flush_elasticache/function.zip")
   runtime          = "python3.12"
 
   vpc_config {
@@ -866,11 +867,11 @@ resource "aws_iam_role_policy" "hibernate_network_codebuild_permissions" {
 # Complete slack message   #
 ############################
 resource "aws_lambda_function" "hibernate_complete" {
-  filename         = "${local.lambda_root}/hibernate_complete/function.zip"
+  filename         = "${local.lambda_build_root}/hibernate_complete/function.zip"
   function_name    = "${var.cluster_name}-hibernate-complete"
   role             = aws_iam_role.hive_hibernate_slackbot.arn
   handler          = "main.lambda_handler"
-  source_code_hash = filebase64sha256("${local.lambda_root}/hibernate_complete/function.zip")
+  source_code_hash = filebase64sha256("${local.lambda_build_root}/hibernate_complete/function.zip")
   runtime          = "python3.12"
 
   environment {
@@ -1397,11 +1398,11 @@ resource "aws_scheduler_schedule" "reboot_sched" {
 }
 
 resource "aws_lambda_function" "reboot_start" {
-  filename         = "${local.lambda_root}/reboot_start/function.zip"
+  filename         = "${local.lambda_build_root}/reboot_start/function.zip"
   function_name    = "${var.cluster_name}-reboot-start"
   role             = aws_iam_role.hive_hibernate_slackbot.arn
   handler          = "main.lambda_handler"
-  source_code_hash = filebase64sha256("${local.lambda_root}/reboot_start/function.zip")
+  source_code_hash = filebase64sha256("${local.lambda_build_root}/reboot_start/function.zip")
   runtime          = "python3.12"
 
   environment {
@@ -1551,11 +1552,11 @@ resource "aws_iam_role_policy" "reboot_network_codebuild_permissions" {
 }
 
 resource "aws_lambda_function" "reboot_complete" {
-  filename         = "${local.lambda_root}/reboot_complete/function.zip"
+  filename         = "${local.lambda_build_root}/reboot_complete/function.zip"
   function_name    = "${var.cluster_name}-reboot-complete"
   role             = aws_iam_role.hive_hibernate_slackbot.arn
   handler          = "main.lambda_handler"
-  source_code_hash = filebase64sha256("${local.lambda_root}/reboot_complete/function.zip")
+  source_code_hash = filebase64sha256("${local.lambda_build_root}/reboot_complete/function.zip")
   runtime          = "python3.12"
 
   environment {
