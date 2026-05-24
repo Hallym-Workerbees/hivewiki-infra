@@ -795,15 +795,6 @@ data "aws_iam_policy_document" "hibernate_network_codebuild_permissions" {
     ]
 
     resources = [var.state_bucket_arn]
-
-    condition {
-      test     = "StringLike"
-      variable = "s3:prefix"
-      values = [
-        local.live_vpc_state_key,
-        "${local.live_vpc_state_key}.tflock"
-      ]
-    }
   }
 
   statement {
@@ -1494,15 +1485,6 @@ data "aws_iam_policy_document" "reboot_network_codebuild_permissions" {
     ]
 
     resources = [var.state_bucket_arn]
-
-    condition {
-      test     = "StringLike"
-      variable = "s3:prefix"
-      values = [
-        local.live_vpc_state_key,
-        "${local.live_vpc_state_key}.tflock"
-      ]
-    }
   }
 
   statement {

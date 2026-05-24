@@ -23,9 +23,6 @@ phases:
     commands:
       - set -euo pipefail
       - cd "$CODEBUILD_SRC_DIR/$TF_ROOT"
-      - aws sts get-caller-identity
-      - aws s3api get-bucket-location --bucket hivewiki-infra-state-bucket || true
-      - aws s3api list-objects-v2 --bucket hivewiki-infra-state-bucket --prefix live/cluster/vpc/ --max-keys 1 || true
 
   build:
     commands:
