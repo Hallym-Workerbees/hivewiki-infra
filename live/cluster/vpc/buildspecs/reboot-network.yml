@@ -10,10 +10,14 @@ phases:
     commands:
       - set -euo pipefail
       - TOFU_VERSION="1.11.0"
+      - TERRAGRUNT_VERSION="0.84.1"
       - curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
       - chmod +x install-opentofu.sh
       - ./install-opentofu.sh --install-method standalone
+      - curl -fsSL "https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_amd64" -o terragrunt
+      - install -m 0755 terragrunt /usr/local/bin/terragrunt
       - tofu version
+      - terragrunt --version
 
   pre_build:
     commands:
@@ -24,6 +28,6 @@ phases:
     commands:
       - set -euo pipefail
       - cd "$CODEBUILD_SRC_DIR/$TF_ROOT"
-      - tofu init -input=false
-      - tofu plan -input=false -out=tfplan
-      - tofu apply -input=false -auto-approve tfplan
+      - terragrunt init --non-interactive -input=false
+      - terragrunt plan --non-interactive -input=false -out=tfplan
+      - terragrunt apply --non-interactive -input=false -auto-approve tfplan
