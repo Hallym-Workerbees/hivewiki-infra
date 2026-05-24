@@ -192,7 +192,7 @@ resource "helm_release" "cilium" {
   values = [
     yamlencode({
       envoy                = { enabled = false }
-      l7Proxy              = false
+      l7Proxy              = true
       image                = { repository = "647502392199.dkr.ecr.ap-northeast-2.amazonaws.com/quay/cilium/cilium" }
       cni                  = { chainingMode = "aws-cni", exclusive = false }
       routingMode          = "native"
