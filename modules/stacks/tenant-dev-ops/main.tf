@@ -774,6 +774,19 @@ resource "aws_codebuild_project" "hibernate_network" {
 
 data "aws_iam_policy_document" "hibernate_network_codebuild_permissions" {
   statement {
+    sid    = "AllowTerraformStateBucketMetadataRead"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetBucketLocation",
+      "s3:GetBucketVersioning",
+      "s3:GetEncryptionConfiguration"
+    ]
+
+    resources = [var.state_bucket_arn]
+  }
+
+  statement {
     sid    = "AllowTerraformStateBucketList"
     effect = "Allow"
 
@@ -1459,6 +1472,19 @@ resource "aws_codebuild_project" "reboot_network" {
 }
 
 data "aws_iam_policy_document" "reboot_network_codebuild_permissions" {
+  statement {
+    sid    = "AllowTerraformStateBucketMetadataRead"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetBucketLocation",
+      "s3:GetBucketVersioning",
+      "s3:GetEncryptionConfiguration"
+    ]
+
+    resources = [var.state_bucket_arn]
+  }
+
   statement {
     sid    = "AllowTerraformStateBucketList"
     effect = "Allow"
