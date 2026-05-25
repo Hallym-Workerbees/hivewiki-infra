@@ -59,4 +59,6 @@ inputs = {
   route53_zone_arn            = dependency.shared.outputs.route53_zone_arn
   loki_chunk_bucket_arn       = dependency.observability.outputs.loki_chunk_bucket_arn
   loki_ruler_bucket_arn       = dependency.observability.outputs.loki_ruler_bucket_arn
+
+  mng_node_disk_size = 30
 }

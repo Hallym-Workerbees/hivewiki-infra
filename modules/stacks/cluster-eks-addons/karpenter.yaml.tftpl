@@ -64,3 +64,11 @@ spec:
 %{ for key, value in tags ~}
     ${key}: "${value}"
 %{ endfor ~}
+
+  blockDeviceMappings:
+    - deviceName: /dev/xdva
+      ebs:
+        volumeSize: "${ebs_vol_size}"
+        volumeType: "${ebs_vol_type}"
+        encrypted: true
+        deleteOnTermination: true
