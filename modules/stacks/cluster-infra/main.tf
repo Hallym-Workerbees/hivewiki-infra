@@ -171,7 +171,7 @@ module "eks_node_group" {
   subnet_ids     = var.private_subnet_ids
   instance_types = ["t4g.large"]
   capacity_type  = "ON_DEMAND"
-  disk_size      = 20
+  disk_size      = var.mng_node_disk_size
 
   scaling = {
     desired_size = var.eks_node_group_desired_size
