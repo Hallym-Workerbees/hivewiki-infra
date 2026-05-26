@@ -209,16 +209,12 @@ resource "helm_release" "cilium" {
       }
       tolerations = [
         {
-          operator = "Equal"
-          key      = "env"
-          value    = "dev"
+          operator = "Exists"
           effect   = "NoSchedule"
         },
         {
-          operator = "Equal"
-          key      = "env"
-          value    = "prod"
-          effect   = "NoSchedule"
+          operator = "Exists"
+          effect   = "NoExecute"
         }
       ]
       prometheus = {
