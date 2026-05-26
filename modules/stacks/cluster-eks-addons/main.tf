@@ -206,9 +206,21 @@ resource "helm_release" "cilium" {
       enableIPv6Masquerade = false
       nodeSelector = {
         "kubernetes.io/os" = "linux"
-        env                = "shared"
-        workload           = "system"
       }
+      tolerations = [
+        {
+          operator = "Equal"
+          key      = "env"
+          value    = "dev"
+          effect   = "NoSchedule"
+        },
+        {
+          operator = "Equal"
+          key      = "env"
+          value    = "prod"
+          effect   = "NoSchedule"
+        }
+      ]
       prometheus = {
         enabled = true
         port    = 9962
