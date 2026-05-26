@@ -4,6 +4,21 @@ data "aws_caller_identity" "current" {}
 # locals #
 ##########
 locals {
+  tolerations = [
+    {
+      operator = "Equal"
+      key      = "env"
+      value    = "dev"
+      effect   = "NoSchedule"
+    },
+    {
+      operator = "Equal"
+      key      = "env"
+      value    = "prod"
+      effect   = "NoSchedule"
+    }
+  ]
+
   eks_private_mode = var.eks_private_mode
 
   eks_addons = {
@@ -22,15 +37,22 @@ locals {
           ENABLE_PREFIX_DELEGATION = "true"
           WARM_PREFIX_TARGET       = "1"
         }
+        tolerations = local.tolerations
       })
     }
     aws_ebs_csi_driver = {
-      name                 = "aws-ebs-csi-driver"
-      configuration_values = ""
+      name = "aws-ebs-csi-driver"
+      configuration_values = jsonencode({
+        node = {
+          tolerations = local.tolerations
+        }
+      })
     }
     eks_pod_identity_agent = {
-      name                 = "eks-pod-identity-agent"
-      configuration_values = ""
+      name = "eks-pod-identity-agent"
+      configuration_values = jsonencode({
+        tolerations = local.tolerations
+      })
     }
   }
 
