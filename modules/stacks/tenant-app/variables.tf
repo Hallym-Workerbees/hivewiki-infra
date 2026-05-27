@@ -26,6 +26,16 @@ variable "web_post_image_bucket_prefix" {
   default = "post-images"
 }
 
+variable "web_community_image_bucket_prefix" {
+  type    = string
+  default = "community-images"
+}
+
+variable "web_tmp_image_bucket_prefix" {
+  type    = string
+  default = "community-images/tmp"
+}
+
 variable "tmp_image_expiration_days" {
   type    = number
   default = 7
