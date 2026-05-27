@@ -25,3 +25,8 @@ variable "web_post_image_bucket_prefix" {
   type    = string
   default = "post-images"
 }
+
+variable "tmp_image_expiration_days" {
+  type    = number
+  default = 7
+}

@@ -46,4 +46,5 @@ inputs = {
   web_sa                          = "hivewiki-web-prod"
   cloudfront_custom_domains       = ["cdn.hive-wiki.com"]
   web_s3_allowed_origins = ["https://www.hive-wiki.com", "https://hive-wiki.com"]
+  tmp_image_expiration_days = 7
 }

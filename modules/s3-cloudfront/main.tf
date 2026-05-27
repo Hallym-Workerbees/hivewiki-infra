@@ -1,5 +1,10 @@
 locals {
   s3_origin_id = "S3-${var.bucket_name}"
+
+  enabled_bucket_lifecycle_rules = {
+    for name, rule in var.bucket_lifecycle_rules : name => rule
+    if rule.enabled
+  }
 }
 
 resource "aws_s3_bucket" "statics" {
@@ -50,6 +55,42 @@ resource "aws_s3_bucket_ownership_controls" "statics" {
 
   rule {
     object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "backup_bucket_lifecycle" {
+  count = length(local.enabled_bucket_lifecycle_rules) > 0 ? 1 : 0
+
+  bucket = aws_s3_bucket.statics.id
+
+  dynamic "rule" {
+    for_each = local.enabled_bucket_lifecycle_rules
+
+    content {
+      id     = rule.value.id
+      status = "Enabled"
+
+      filter {
+        prefix = rule.value.prefix
+      }
+
+      dynamic "transition" {
+        for_each = rule.value.transitions
+
+        content {
+          days          = transition.value.days
+          storage_class = transition.value.storage_class
+        }
+      }
+
+      dynamic "expiration" {
+        for_each = rule.value.expiration_days != null ? [1] : []
+
+        content {
+          days = rule.value.expiration_days
+        }
+      }
+    }
   }
 }
 

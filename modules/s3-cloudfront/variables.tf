@@ -86,3 +86,18 @@ variable "allowed_origins" {
   type        = list(string)
   default     = []
 }
+
+variable "bucket_lifecycle_rules" {
+  description = "Lifecycle rules for the backup bucket"
+  type = map(object({
+    enabled = optional(bool, true)
+    id      = string
+    prefix  = string
+    transitions = list(object({
+      days          = number
+      storage_class = string
+    }))
+    expiration_days = optional(number)
+  }))
+  default = {}
+}
