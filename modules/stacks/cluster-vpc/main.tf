@@ -86,8 +86,10 @@ module "vpc" {
     c = { cidr = "10.1.1.0/24", az = "c" }
   }
   private_subnets = {
-    a = { cidr = "10.1.100.0/24", az = "a" }
-    c = { cidr = "10.1.101.0/24", az = "c" }
+    a       = { cidr = "10.1.100.0/24", az = "a" }
+    c       = { cidr = "10.1.101.0/24", az = "c" }
+    a_large = { cidr = "10.1.16.0/20", az = "a" }
+    c_large = { cidr = "10.1.32.0/20", az = "c" }
   }
   db_subnets = {
     a = { cidr = "10.1.200.0/24", az = "a" }
