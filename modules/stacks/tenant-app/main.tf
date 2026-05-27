@@ -25,7 +25,7 @@ module "web_cloudfront_s3_bucket" {
     daily = {
       enabled         = true
       id              = "tmp-img-daily-backup-retention"
-      prefix          = "/tmp"
+      prefix          = var.web_tmp_image_bucket_prefix
       transitions     = []
       expiration_days = var.tmp_image_expiration_days
     }
@@ -54,6 +54,7 @@ data "aws_iam_policy_document" "web" {
     resources = [
       "${module.web_cloudfront_s3_bucket.bucket_arn}/${var.web_profile_image_bucket_prefix}/*",
       "${module.web_cloudfront_s3_bucket.bucket_arn}/${var.web_post_image_bucket_prefix}/*",
+      "${module.web_cloudfront_s3_bucket.bucket_arn}/${var.web_community_image_bucket_prefix}/*",
     ]
   }
   statement {
