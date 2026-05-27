@@ -6,16 +6,12 @@ data "aws_caller_identity" "current" {}
 locals {
   tolerations = [
     {
-      operator = "Equal"
-      key      = "env"
-      value    = "dev"
+      operator = "Exists"
       effect   = "NoSchedule"
     },
     {
-      operator = "Equal"
-      key      = "env"
-      value    = "prod"
-      effect   = "NoSchedule"
+      operator = "Exists"
+      effect   = "NoExecute"
     }
   ]
 
