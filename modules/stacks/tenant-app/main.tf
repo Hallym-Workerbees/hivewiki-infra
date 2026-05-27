@@ -21,6 +21,15 @@ module "web_cloudfront_s3_bucket" {
   zone_id              = var.route53_zone_id
   custom_domains       = var.cloudfront_custom_domains
   acm_certificate_arn  = var.cloudfront_acm_certificate_arn
+  bucket_lifecycle_rules = {
+    daily = {
+      enabled         = true
+      id              = "tmp-img-daily-backup-retention"
+      prefix          = "/tmp"
+      transitions     = []
+      expiration_days = var.tmp_image_expiration_days
+    }
+  }
 }
 
 module "app_pod_identity_association" {
