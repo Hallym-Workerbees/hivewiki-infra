@@ -3,6 +3,12 @@ variable "bucket_name" {
   type        = string
 }
 
+variable "bucket_force_destroy" {
+  description = "Whether to delete all objects and versions before destroying the bucket"
+  type        = bool
+  default     = false
+}
+
 variable "enable_custom_domain" {
   description = "Whether to enable custom domain"
   type        = bool

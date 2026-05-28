@@ -1,6 +1,7 @@
 module "loki_chunk_bucket" {
-  source      = "../../s3-archive"
-  bucket_name = "${var.cluster_name}-loki-chunk"
+  source               = "../../s3-archive"
+  bucket_name          = "${var.cluster_name}-loki-chunk"
+  bucket_force_destroy = var.enable_force_destroy
   bucket_lifecycle_rules = {
     daily = {
       enabled         = true
@@ -13,13 +14,15 @@ module "loki_chunk_bucket" {
 }
 
 module "loki_ruler_bucket" {
-  source      = "../../s3-archive"
-  bucket_name = "${var.cluster_name}-loki-ruler"
+  source               = "../../s3-archive"
+  bucket_name          = "${var.cluster_name}-loki-ruler"
+  bucket_force_destroy = var.enable_force_destroy
 }
 
 module "log_archive_bucket" {
-  source      = "../../s3-archive"
-  bucket_name = "${var.cluster_name}-log-archive"
+  source               = "../../s3-archive"
+  bucket_name          = "${var.cluster_name}-log-archive"
+  bucket_force_destroy = var.enable_force_destroy
   bucket_lifecycle_rules = {
     daily = {
       enabled = true

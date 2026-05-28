@@ -19,7 +19,7 @@ terraform {
 dependency "infra" {
   config_path = "../../../infra"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     eks_cluster_name = "hivewiki-dev"
   }
@@ -28,7 +28,7 @@ dependency "infra" {
 dependency "shared" {
   config_path = "../../../../shared"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     route53_zone_id                = "MOCKZONEID"
     cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:000000000000:certificate/mock"

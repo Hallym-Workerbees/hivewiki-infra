@@ -14,7 +14,7 @@ terraform {
 dependency "infra" {
   config_path = "../infra"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     eks_endpoint              = "https://mock.eks.endpoint"
     eks_ca_certificate        = "bW9jaw=="
@@ -27,7 +27,7 @@ dependency "infra" {
 dependency "edge" {
   config_path = "../edge"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     web_acl_arn = "arn:aws:wafv2:ap-northeast-2:000000000000:regional/webacl/mock/mock"
   }
@@ -36,7 +36,7 @@ dependency "edge" {
 dependency "vpc" {
   config_path = "../vpc"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     vpc_id = "vpc-00000000"
   }

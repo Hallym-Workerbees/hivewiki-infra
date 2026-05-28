@@ -8,7 +8,8 @@ locals {
 }
 
 resource "aws_s3_bucket" "statics" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
+  force_destroy = var.bucket_force_destroy
 
   tags = {
     Name = var.bucket_name

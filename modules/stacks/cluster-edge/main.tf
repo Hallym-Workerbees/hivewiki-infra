@@ -17,9 +17,10 @@ data "aws_iam_policy_document" "alb_logging" {
 }
 
 module "alb_logging" {
-  source             = "../../s3-archive"
-  bucket_name        = "${var.cluster_name}-alb-gw-logs"
-  bucket_policy_json = data.aws_iam_policy_document.alb_logging.json
+  source               = "../../s3-archive"
+  bucket_name          = "${var.cluster_name}-alb-gw-logs"
+  bucket_force_destroy = var.enable_force_destroy
+  bucket_policy_json   = data.aws_iam_policy_document.alb_logging.json
   bucket_lifecycle_rules = {
     daily = {
       enabled         = true
@@ -35,8 +36,9 @@ module "alb_logging" {
 # WAF #
 #######
 module "waf_logging" {
-  source      = "../../s3-archive"
-  bucket_name = "aws-waf-logs-${var.cluster_name}"
+  source               = "../../s3-archive"
+  bucket_name          = "aws-waf-logs-${var.cluster_name}"
+  bucket_force_destroy = var.enable_force_destroy
   bucket_lifecycle_rules = {
     daily = {
       enabled         = true

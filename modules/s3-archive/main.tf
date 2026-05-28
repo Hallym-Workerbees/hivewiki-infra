@@ -7,7 +7,8 @@ locals {
 
 # S3 bucket
 resource "aws_s3_bucket" "backup_bucket" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
+  force_destroy = var.bucket_force_destroy
 
   tags = {
     Name = var.bucket_name

@@ -14,3 +14,8 @@ variable "waf_rate_limit" {
   type    = number
   default = 500
 }
+
+variable "enable_force_destroy" {
+  type    = bool
+  default = false
+}

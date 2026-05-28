@@ -38,3 +38,8 @@ variable "certificate_subject_alternative_names" {
     error_message = "At least one subject alternative name must be provided."
   }
 }
+
+variable "enable_force_destroy" {
+  type    = bool
+  default = false
+}
