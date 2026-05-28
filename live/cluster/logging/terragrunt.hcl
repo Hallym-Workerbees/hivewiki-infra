@@ -18,7 +18,7 @@ locals {
 dependency "infra" {
   config_path = "../infra"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     eks_log_group_name = "/aws/eks/mock/cluster"
   }
@@ -27,7 +27,7 @@ dependency "infra" {
 dependency "observability" {
   config_path = "../observability"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     log_archive_bucket_arn = "arn:aws:s3:::mock-log-archive"
   }
@@ -36,7 +36,7 @@ dependency "observability" {
 dependency "dev_rds" {
   config_path = "../tenants/dev/rds"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     log_group_name = "/aws/rds/instance/hivewiki-dev/postgresql"
   }
@@ -46,7 +46,7 @@ dependency "prod_rds" {
   config_path = "../tenants/prod/rds"
   enabled     = local.enable_prod_rds_logging
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     log_group_name = "/aws/rds/instance/hivewiki-prod/postgresql"
   }

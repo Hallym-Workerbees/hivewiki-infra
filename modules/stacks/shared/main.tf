@@ -42,7 +42,8 @@ locals {
 
 // State Backend (S3)
 resource "aws_s3_bucket" "state_backend" {
-  bucket = "hivewiki-infra-state-bucket"
+  bucket        = "hivewiki-infra-state-bucket"
+  force_destroy = var.enable_force_destroy
 }
 
 # We intentionally use S3-managed encryption (SSE-S3 / AES256) instead of SSE-KMS
@@ -90,7 +91,7 @@ resource "aws_ecr_repository" "app_repositories" {
     scan_on_push = true
   }
 
-  force_delete = false
+  force_delete = var.enable_force_destroy
 }
 
 resource "aws_ecr_lifecycle_policy" "app_repositories" {

@@ -40,3 +40,8 @@ variable "tmp_image_expiration_days" {
   type    = number
   default = 7
 }
+
+variable "enable_force_destroy" {
+  type    = bool
+  default = false
+}

@@ -14,7 +14,7 @@ terraform {
 dependency "vpc" {
   config_path = "../../../vpc"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     vpc_id             = "vpc-00000000"
     private_subnet_ids = ["subnet-00000000", "subnet-11111111"]
@@ -24,7 +24,7 @@ dependency "vpc" {
 dependency "infra" {
   config_path = "../../../infra"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     eks_cluster_name = "hivewiki-dev"
     ng_arn           = "arn:aws:eks:ap-northeast-2:000000000000:nodegroup/mock/mock/mock"
@@ -35,7 +35,7 @@ dependency "infra" {
 dependency "rds" {
   config_path = "../rds"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     db_identifier = "hivewiki-dev"
   }
@@ -44,7 +44,7 @@ dependency "rds" {
 dependency "cache" {
   config_path = "../cache"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     cache_address = "mock.cache.endpoint"
     cache_port    = 6379
@@ -55,7 +55,7 @@ dependency "cache" {
 dependency "shared" {
   config_path = "../../../../shared"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     state_bucket_arn = "arn:aws:s3:::mock-bucket"
   }

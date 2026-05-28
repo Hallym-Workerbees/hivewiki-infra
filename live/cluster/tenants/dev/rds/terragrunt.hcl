@@ -19,7 +19,7 @@ terraform {
 dependency "vpc" {
   config_path = "../../../vpc"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     vpc_id        = "vpc-00000000"
     db_subnet_ids = ["subnet-00000000", "subnet-11111111"]
@@ -29,7 +29,7 @@ dependency "vpc" {
 dependency "infra" {
   config_path = "../../../infra"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     cluster_security_group_id = "sg-00000000"
   }

@@ -17,6 +17,7 @@ module "web_cloudfront_s3_bucket" {
 
   allowed_origins      = var.web_s3_allowed_origins
   bucket_name          = var.static_bucket_name
+  bucket_force_destroy = var.enable_force_destroy
   enable_custom_domain = true
   zone_id              = var.route53_zone_id
   custom_domains       = var.cloudfront_custom_domains

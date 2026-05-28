@@ -193,7 +193,7 @@ resource "helm_release" "cilium" {
   namespace  = "kube-system"
   wait       = true
   atomic     = true
-  timeout    = 900
+  timeout    = 1800
 
   values = [
     yamlencode({

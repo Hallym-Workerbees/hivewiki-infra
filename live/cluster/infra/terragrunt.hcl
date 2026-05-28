@@ -14,7 +14,7 @@ terraform {
 dependency "vpc" {
   config_path = "../vpc"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     vpc_id             = "vpc-00000000"
     private_subnet_ids = ["subnet-00000000", "subnet-11111111"]
@@ -26,7 +26,7 @@ dependency "vpc" {
 dependency "shared" {
   config_path = "../../shared"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     eks_admin_sso_principal_arn = "arn:aws:iam::000000000000:role/mock"
     route53_zone_arn            = "arn:aws:route53:::hostedzone/MOCK"
@@ -37,7 +37,7 @@ dependency "shared" {
 dependency "observability" {
   config_path = "../observability"
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
     loki_chunk_bucket_arn = "arn:aws:s3:::mock-loki-chunk"
     loki_ruler_bucket_arn = "arn:aws:s3:::mock-loki-ruler"
