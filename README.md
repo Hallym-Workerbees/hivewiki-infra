@@ -1,5 +1,7 @@
 # HiveWiki Infra
 
+🏆 2026학년도 1학기 한림대학교 SW캡스톤디자인 경진대회 금상 수상 프로젝트
+
 HiveWiki의 AWS 인프라를 OpenTofu/Terragrunt로 선언적으로 관리하는 저장소입니다.
 
 - Terragrunt로 `live` 환경과 재사용 가능한 `modules`를 분리
