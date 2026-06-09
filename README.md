@@ -1,13 +1,11 @@
 # HiveWiki Infra
 
-HiveWiki의 AWS 인프라를 OpenTofu/Terragrunt로 선언적으로 관리하는 저장소입니다. 단일 EKS 클러스터 위에 공용 플랫폼 계층과 `dev`/`prod` 테넌트 계층을 나누고, 네트워크, 데이터 계층, 관측성, 엣지 리소스, 비용 절감용 운영 자동화까지 한 레포지토리에서 추적합니다.
+HiveWiki의 AWS 인프라를 OpenTofu/Terragrunt로 선언적으로 관리하는 저장소입니다.
 
-- Terragrunt로 `live` 환경과 재사용 가능한 `modules`를 분리했습니다.
-- EKS, Karpenter, CloudFront, WAF, RDS, ElastiCache, 로그 아카이빙을 하나의 인프라 체계로 묶었습니다.
-- 개발 환경 비용 최적화를 위해 hibernate/reboot 워크플로우를 Terraform 스택으로 관리합니다.
-- 단일 EKS 클러스터 안에서 `dev`와 `prod`를 멀티테넌시로 운영하되, Karpenter NodePool을 환경별로 분리해 스케줄링 경계를 만들었습니다.
-- 워크로드 스케줄링에는 `nodeSelector`와 `taint/tolerations`를 함께 사용했고, Pod의 네트워킹은 `CiliumNetworkPolicy`를 이용하여 경계를 만들었습니다.
-- `tenant-dev-ops`는 두 개의 Step Functions로 개발 환경 절전 및 복구 자동화를 구현했습니다.
+- Terragrunt로 `live` 환경과 재사용 가능한 `modules`를 분리
+- 개발 환경 비용 최적화를 위한 AWS Stepfunction 기반의 hibernate/reboot 워크플로우
+- 단일 EKS 클러스터 안에서 `dev`와 `prod`를 멀티테넌시로 운영하되, Karpenter NodePool을 환경별로 분리
+- 워크로드 스케줄링에는 `nodeSelector`와 `taint/tolerations`를 함께 사용, Pod의 네트워킹은 `CiliumNetworkPolicy`를 이용하여 경계 유지
 
 ## Architecture At A Glance
 
@@ -32,7 +30,7 @@ modules/
   */                      stacks 내부에서 조합하는 재사용 모듈
 ```
 
-상세 스택 설명과 의존관계는 [docs/stack-map.md](/home/chaewoon/dev/capstone/hivewiki-infra/docs/stack-map.md)에서 정리했습니다.
+상세 스택 설명과 의존관계는 [docs/stack-map.md](/home/chaewoon/dev/capstone/hivewiki-infra/docs/stack-map.md)에서 볼 수 있습니다.
 
 ## Core Decisions
 
