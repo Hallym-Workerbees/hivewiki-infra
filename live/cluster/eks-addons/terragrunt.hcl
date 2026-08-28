@@ -16,20 +16,11 @@ dependency "infra" {
 
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
   mock_outputs = {
-    eks_endpoint              = "https://mock.eks.endpoint"
-    eks_ca_certificate        = "bW9jaw=="
-    eks_cluster_name          = "hivewiki-dev"
+    eks_endpoint                = "https://mock.eks.endpoint"
+    eks_ca_certificate          = "bW9jaw=="
+    eks_cluster_name            = "hivewiki-dev"
     interruption_handling_queue = "mock-queue"
-    karpenter_node_role_name  = "mock-node-role"
-  }
-}
-
-dependency "edge" {
-  config_path = "../edge"
-
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "output", "state", "destroy", "force-unlock"]
-  mock_outputs = {
-    web_acl_arn = "arn:aws:wafv2:ap-northeast-2:000000000000:regional/webacl/mock/mock"
+    karpenter_node_role_name    = "mock-node-role"
   }
 }
 
@@ -52,6 +43,5 @@ inputs = {
   interruption_handling_queue = dependency.infra.outputs.interruption_handling_queue
   karpenter_node_role_name    = dependency.infra.outputs.karpenter_node_role_name
 
-  vpc_id      = dependency.vpc.outputs.vpc_id
-  web_acl_arn = dependency.edge.outputs.web_acl_arn
+  vpc_id = dependency.vpc.outputs.vpc_id
 }

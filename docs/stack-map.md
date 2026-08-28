@@ -96,7 +96,6 @@
 주요 의존성:
 
 - `../infra`
-- `../edge`
 - `../vpc`
 
 ### `live/cluster/logging`
